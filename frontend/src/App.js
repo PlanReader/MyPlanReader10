@@ -290,10 +290,10 @@ function App() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 to-slate-800" data-testid="loading-screen">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50" data-testid="loading-screen">
         <div className="flex flex-col items-center gap-4">
-          <Loader2 className="w-10 h-10 text-blue-500 animate-spin" />
-          <p className="text-slate-400 text-lg">Loading PlanReader Pro...</p>
+          <Loader2 className="w-10 h-10 text-blue-600 animate-spin" />
+          <p className="text-gray-600 text-lg">Loading MyPlanReader™...</p>
         </div>
       </div>
     );
