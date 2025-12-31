@@ -174,6 +174,70 @@ def calculate_general_materials(description: str) -> Dict:
         "items": 0
     }
 
+def calculate_stucco_materials(sq_ft: float) -> Dict:
+    """Calculate stucco materials - all values rounded UP to whole numbers"""
+    # Stucco mix: 1 bag covers ~25 sq ft
+    stucco_bags = math.ceil(sq_ft / 25)
+    
+    # Sand: 1 cubic ft per 10 sq ft
+    sand_cubic_ft = math.ceil(sq_ft / 10)
+    
+    # Metal lath: 1 sheet (2.5 sq yd) covers ~22.5 sq ft
+    metal_lath_sheets = math.ceil(sq_ft / 22.5)
+    
+    # Furring nails: 1 lb per 50 sq ft
+    furring_nails_lbs = math.ceil(sq_ft / 50)
+    
+    # Corner bead: 1 per 8 linear ft of corners (estimate 1 per 100 sq ft)
+    corner_beads = math.ceil(sq_ft / 100)
+    
+    # Bonding agent: 1 gallon per 200 sq ft
+    bonding_agent_gal = math.ceil(sq_ft / 200)
+    
+    return {
+        "stucco_bags": stucco_bags,
+        "sand_cubic_ft": sand_cubic_ft,
+        "metal_lath_sheets": metal_lath_sheets,
+        "furring_nails_lbs": max(1, furring_nails_lbs),
+        "corner_beads": max(1, corner_beads),
+        "bonding_agent_gallons": max(1, bonding_agent_gal)
+    }
+
+def calculate_exterior_paint_materials(sq_ft: float, coats: int = 2) -> Dict:
+    """Calculate exterior paint materials - all values rounded UP to whole numbers"""
+    total_coverage = sq_ft * coats
+    
+    # Exterior paint: 1 gallon covers ~300 sq ft (less than interior due to texture)
+    paint_gallons = math.ceil(total_coverage / 300)
+    
+    # Exterior primer: 1 gallon covers ~350 sq ft
+    primer_gallons = math.ceil(sq_ft / 350)
+    
+    # Caulk tubes: 1 per 50 linear ft of trim (estimate 1 per 100 sq ft)
+    caulk_tubes = math.ceil(sq_ft / 100)
+    
+    # Rollers (exterior grade, 1 per 400 sq ft)
+    rollers = math.ceil(sq_ft / 400)
+    
+    # Extension poles: 1 per 500 sq ft
+    extension_poles = math.ceil(sq_ft / 500)
+    
+    # Painter's plastic (for protection): 1 roll per 200 sq ft
+    plastic_rolls = math.ceil(sq_ft / 200)
+    
+    # Masking tape rolls
+    tape_rolls = math.ceil(sq_ft / 75)
+    
+    return {
+        "exterior_paint_gallons": paint_gallons,
+        "exterior_primer_gallons": primer_gallons,
+        "caulk_tubes": max(1, caulk_tubes),
+        "exterior_rollers": max(1, rollers),
+        "extension_poles": max(1, extension_poles),
+        "plastic_rolls": max(1, plastic_rolls),
+        "masking_tape_rolls": max(1, tape_rolls)
+    }
+
 # Pydantic models
 class TaskCreate(BaseModel):
     title: str = Field(..., min_length=1, max_length=200)
