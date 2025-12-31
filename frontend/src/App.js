@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
+import { loadStripe } from '@stripe/stripe-js';
 import './App.css';
 import { 
   Plus, 
@@ -9,8 +10,6 @@ import {
   Edit3, 
   Trash2, 
   Calendar, 
-  Flag, 
-  Tag, 
   LayoutDashboard,
   List,
   X,
@@ -27,7 +26,9 @@ import {
   Upload,
   FileText,
   DollarSign,
-  Check
+  Check,
+  CreditCard,
+  Lock
 } from 'lucide-react';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
