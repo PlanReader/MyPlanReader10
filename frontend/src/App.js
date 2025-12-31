@@ -106,9 +106,11 @@ function App() {
   const [filterTrade, setFilterTrade] = useState('all');
   const [showModal, setShowModal] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
-  const [activeView, setActiveView] = useState('tasks');
+  const [activeView, setActiveView] = useState('shopping'); // Default to Shopping List
   const [categories, setCategories] = useState(DEFAULT_CATEGORIES);
   const [trades, setTrades] = useState(DEFAULT_TRADES);
+  const [showAddTradeModal, setShowAddTradeModal] = useState(false);
+  const [newTradeName, setNewTradeName] = useState('');
   
   // Form state
   const [formData, setFormData] = useState({
