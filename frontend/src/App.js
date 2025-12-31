@@ -13,7 +13,6 @@ import {
   Tag, 
   LayoutDashboard,
   List,
-  ChevronDown,
   X,
   Clock,
   AlertCircle,
