@@ -1040,7 +1040,7 @@ function PriorityBar({ label, count, total, color }) {
 }
 
 // Task Modal Component with Measurements
-function TaskModal({ formData, setFormData, editingTask, categories, trades, handleSubmit, closeModal }) {
+function TaskModal({ formData, setFormData, editingTask, categories, trades, handleSubmit, closeModal, onAddTrade }) {
   const selectedTrade = formData.trade ? TRADES[formData.trade] : null;
   const measurementFields = selectedTrade?.measurementFields || [];
 
@@ -1052,6 +1052,15 @@ function TaskModal({ formData, setFormData, editingTask, categories, trades, han
         [key]: value ? parseFloat(value) : undefined
       }
     });
+  };
+
+  const handleTradeChange = (e) => {
+    const value = e.target.value;
+    if (value === '__add_new__') {
+      onAddTrade();
+    } else {
+      setFormData({ ...formData, trade: value, measurements: {} });
+    }
   };
 
   return (
