@@ -300,8 +300,14 @@ async def get_task(task_id: str):
 
 @app.post("/api/tasks", response_model=Task)
 async def create_task(task: TaskCreate):
-    """Create a new task"""
+    """Create a new task with automatic material calculation"""
     now = datetime.utcnow().isoformat()
+    
+    # Calculate materials if trade and measurements provided
+    materials = None
+    if task.trade and task.measurements:
+        materials = calculate_materials_for_trade(task.trade, task.measurements)
+    
     task_data = {
         "id": str(uuid.uuid4()),
         "title": task.title,
@@ -311,6 +317,8 @@ async def create_task(task: TaskCreate):
         "category": task.category or "General",
         "trade": task.trade,
         "due_date": task.due_date,
+        "measurements": task.measurements,
+        "materials": materials,
         "created_at": now,
         "updated_at": now
     }
