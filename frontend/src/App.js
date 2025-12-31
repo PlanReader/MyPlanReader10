@@ -1162,7 +1162,7 @@ function TaskModal({ formData, setFormData, editingTask, categories, trades, han
               </label>
               <select
                 value={formData.trade}
-                onChange={(e) => setFormData({ ...formData, trade: e.target.value, measurements: {} })}
+                onChange={handleTradeChange}
                 className="w-full px-3 py-2 border border-[#e3e2de] rounded-md text-sm bg-white"
                 data-testid="select-trade"
               >
@@ -1170,6 +1170,7 @@ function TaskModal({ formData, setFormData, editingTask, categories, trades, han
                 {trades.map(trade => (
                   <option key={trade} value={trade}>{TRADES[trade]?.icon || '🔨'} {trade}</option>
                 ))}
+                <option value="__add_new__" className="text-blue-600">➕ Add Trade...</option>
               </select>
             </div>
           </div>
