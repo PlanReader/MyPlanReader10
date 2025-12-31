@@ -918,6 +918,8 @@ async def get_pricing():
         ],
         "max_pages": 25,
         "currency": "USD",
+        "donation_per_takeoff": 1.00,
+        "donation_recipient": "Tunnel to Towers Foundation",
         "stripe_publishable_key": STRIPE_PUBLISHABLE_KEY
     }
 
@@ -932,21 +934,27 @@ class CreateCheckoutSession(BaseModel):
     total_amount: int  # Amount in cents
     success_url: str
     cancel_url: str
+    user_id: str  # Required - user must be logged in
 
 @app.post("/api/create-checkout-session")
 async def create_checkout_session(data: CreateCheckoutSession):
     """Create a Stripe Checkout session for blueprint processing payment"""
     try:
+        # Verify user exists
+        user = users_collection.find_one({"id": data.user_id})
+        if not user:
+            raise HTTPException(status_code=401, detail="User not found. Please sign in first.")
+        
         # Build line items based on selected trades
         line_items = []
         
-        # Base Drywall trade
+        # Base Drywall trade - includes $1 donation
         line_items.append({
             "price_data": {
                 "currency": "usd",
                 "product_data": {
                     "name": "Blueprint Analysis - Drywall (Base)",
-                    "description": f"Material takeoff for {data.filename} ({data.page_count} pages)",
+                    "description": f"Material takeoff for {data.filename} ({data.page_count} pages). Includes $1 donation to Tunnel to Towers.",
                 },
                 "unit_amount": 2500,  # $25.00 in cents
             },
@@ -968,14 +976,32 @@ async def create_checkout_session(data: CreateCheckoutSession):
                 "quantity": 1,
             })
         
+        # Create project record
+        project_id = str(uuid.uuid4())
+        project_record = {
+            "id": project_id,
+            "user_id": data.user_id,
+            "filename": data.filename,
+            "page_count": data.page_count,
+            "selected_trades": data.selected_trades,
+            "total_fee": data.total_amount / 100,
+            "donation_amount": 1.00,
+            "status": "pending",
+            "created_at": datetime.utcnow().isoformat()
+        }
+        projects_collection.insert_one(project_record)
+        
         # Create payment record
         payment_id = str(uuid.uuid4())
         payment_record = {
             "id": payment_id,
+            "project_id": project_id,
+            "user_id": data.user_id,
             "filename": data.filename,
             "page_count": data.page_count,
             "selected_trades": data.selected_trades,
             "total_amount": data.total_amount,
+            "donation_amount": 100,  # $1.00 in cents
             "status": "pending",
             "created_at": datetime.utcnow().isoformat()
         }
