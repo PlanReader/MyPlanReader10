@@ -429,6 +429,171 @@ async def get_trades():
     all_trades.sort()
     return {"trades": all_trades}
 
+# ============================================
+# MATERIAL CALCULATION & SHOPPING LIST APIs
+# ============================================
+
+@app.post("/api/calculate-materials")
+async def calculate_materials(calc: MaterialCalculation):
+    """Calculate materials for a given trade and measurements - ALL ROUNDED UP"""
+    materials = calculate_materials_for_trade(calc.trade, calc.measurements)
+    return {
+        "trade": calc.trade,
+        "measurements": calc.measurements,
+        "materials": materials,
+        "note": "All quantities rounded UP to nearest whole number"
+    }
+
+@app.get("/api/shopping-list")
+async def get_shopping_list(trade: Optional[str] = None):
+    """
+    Get aggregated shopping list from all tasks with materials.
+    ALL quantities are WHOLE NUMBERS (rounded UP).
+    """
+    query = {"materials": {"$ne": None}}
+    if trade:
+        query["trade"] = trade
+    
+    # Aggregate all materials
+    aggregated = {}
+    tasks_with_materials = []
+    
+    for task in tasks_collection.find(query):
+        if task.get("materials"):
+            tasks_with_materials.append({
+                "task_title": task["title"],
+                "trade": task.get("trade"),
+                "materials": task["materials"]
+            })
+            
+            for item, qty in task["materials"].items():
+                if isinstance(qty, (int, float)) and item != "note":
+                    # Round UP and ensure whole number
+                    whole_qty = math.ceil(qty)
+                    aggregated[item] = aggregated.get(item, 0) + whole_qty
+    
+    # Ensure ALL final values are whole numbers (rounded UP)
+    final_list = {}
+    for item, qty in aggregated.items():
+        final_list[item] = math.ceil(qty)  # Double-ensure whole numbers
+    
+    return {
+        "shopping_list": final_list,
+        "total_items": len(final_list),
+        "tasks_included": len(tasks_with_materials),
+        "breakdown_by_task": tasks_with_materials,
+        "note": "All quantities are WHOLE NUMBERS (rounded UP)"
+    }
+
+@app.get("/api/export/shopping-list")
+async def export_shopping_list_csv(trade: Optional[str] = None):
+    """Export shopping list as CSV - ALL quantities as WHOLE NUMBERS"""
+    # Get shopping list data
+    query = {"materials": {"$ne": None}}
+    if trade:
+        query["trade"] = trade
+    
+    aggregated = {}
+    for task in tasks_collection.find(query):
+        if task.get("materials"):
+            for item, qty in task["materials"].items():
+                if isinstance(qty, (int, float)) and item != "note":
+                    whole_qty = math.ceil(qty)
+                    aggregated[item] = aggregated.get(item, 0) + whole_qty
+    
+    # Create CSV
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["Item", "Quantity", "Unit"])
+    
+    # Define units for items
+    units = {
+        "drywall_sheets": "sheets",
+        "studs": "pieces",
+        "screws": "pieces",
+        "joint_compound_gallons": "gallons",
+        "tape_rolls": "rolls",
+        "ductwork_linear_ft": "linear ft",
+        "duct_tape_rolls": "rolls",
+        "hangers": "pieces",
+        "registers": "pieces",
+        "flex_connectors": "pieces",
+        "paint_gallons": "gallons",
+        "primer_gallons": "gallons",
+        "rollers": "pieces",
+        "brushes": "pieces",
+        "drop_cloths": "pieces",
+        "painters_tape_rolls": "rolls",
+        "wire_feet": "feet",
+        "outlet_boxes": "pieces",
+        "switch_boxes": "pieces",
+        "wire_nuts": "pieces",
+        "staples": "pieces",
+        "outlets": "pieces",
+        "switches": "pieces",
+        "pipe_feet": "feet",
+        "fittings": "pieces",
+        "adhesive_units": "units",
+        "fixtures": "pieces"
+    }
+    
+    for item, qty in sorted(aggregated.items()):
+        # Format item name nicely
+        formatted_name = item.replace("_", " ").title()
+        # Ensure whole number
+        whole_qty = math.ceil(qty)
+        unit = units.get(item, "units")
+        writer.writerow([formatted_name, whole_qty, unit])
+    
+    output.seek(0)
+    
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename=shopping_list_{datetime.utcnow().strftime('%Y%m%d')}.csv"}
+    )
+
+@app.get("/api/export/tasks")
+async def export_tasks_csv(trade: Optional[str] = None, status: Optional[str] = None):
+    """Export tasks with materials as CSV - ALL material quantities as WHOLE NUMBERS"""
+    query = {}
+    if trade:
+        query["trade"] = trade
+    if status:
+        query["status"] = status
+    
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["Title", "Trade", "Status", "Priority", "Due Date", "Materials Summary"])
+    
+    for task in tasks_collection.find(query).sort("created_at", -1):
+        materials_summary = ""
+        if task.get("materials"):
+            # Format materials with WHOLE numbers only
+            items = []
+            for item, qty in task["materials"].items():
+                if isinstance(qty, (int, float)) and item != "note":
+                    whole_qty = math.ceil(qty)
+                    items.append(f"{item.replace('_', ' ')}: {whole_qty}")
+            materials_summary = "; ".join(items)
+        
+        writer.writerow([
+            task["title"],
+            task.get("trade", ""),
+            task["status"],
+            task["priority"],
+            task.get("due_date", ""),
+            materials_summary
+        ])
+    
+    output.seek(0)
+    
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename=tasks_export_{datetime.utcnow().strftime('%Y%m%d')}.csv"}
+    )
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8001)
