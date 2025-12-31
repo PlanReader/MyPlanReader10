@@ -407,7 +407,7 @@ function App() {
             Trades
           </h3>
           <div className="space-y-1">
-            {trades.slice(0, 5).map(trade => (
+            {trades.slice(0, 6).map(trade => (
               <button
                 key={trade}
                 onClick={() => { setFilterTrade(trade); setActiveView('tasks'); }}
@@ -419,6 +419,15 @@ function App() {
                 {TRADES[trade]?.icon || '🔨'} {trade}
               </button>
             ))}
+            {/* Add Trade Button */}
+            <button
+              onClick={() => setShowAddTradeModal(true)}
+              className="w-full text-left text-xs px-2 py-1.5 rounded transition-colors text-blue-600 hover:bg-blue-50 flex items-center gap-1 mt-2 border-t border-[#e3e2de] pt-2"
+              data-testid="add-trade-sidebar-btn"
+            >
+              <Plus className="w-3 h-3" />
+              Add Trade
+            </button>
           </div>
         </div>
 
