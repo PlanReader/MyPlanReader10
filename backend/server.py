@@ -212,6 +212,17 @@ async def get_categories():
     categories = tasks_collection.distinct("category")
     return {"categories": categories if categories else ["General"]}
 
+@app.get("/api/trades")
+async def get_trades():
+    """Get all unique trades"""
+    trades = tasks_collection.distinct("trade")
+    # Filter out None values and return default trades if empty
+    trades = [t for t in trades if t]
+    default_trades = ["Drywall", "HVAC", "Painting", "Electrical", "Plumbing", "General"]
+    all_trades = list(set(default_trades + trades))
+    all_trades.sort()
+    return {"trades": all_trades}
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8001)
