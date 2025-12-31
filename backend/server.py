@@ -36,6 +36,7 @@ class TaskCreate(BaseModel):
     status: str = Field(default="todo")  # todo, in_progress, completed
     priority: str = Field(default="medium")  # low, medium, high
     category: Optional[str] = "General"
+    trade: Optional[str] = None  # Drywall, HVAC, Painting, Electrical, Plumbing, General, etc.
     due_date: Optional[str] = None
 
 class TaskUpdate(BaseModel):
@@ -44,6 +45,7 @@ class TaskUpdate(BaseModel):
     status: Optional[str] = None
     priority: Optional[str] = None
     category: Optional[str] = None
+    trade: Optional[str] = None
     due_date: Optional[str] = None
 
 class Task(BaseModel):
@@ -53,6 +55,7 @@ class Task(BaseModel):
     status: str
     priority: str
     category: str
+    trade: Optional[str]
     due_date: Optional[str]
     created_at: str
     updated_at: str
