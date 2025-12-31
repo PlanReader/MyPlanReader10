@@ -10,6 +10,7 @@ import math
 import csv
 import io
 import stripe
+import hashlib
 from pymongo import MongoClient
 from dotenv import load_dotenv
 
@@ -17,7 +18,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Initialize FastAPI app
-app = FastAPI(title="PlanReader Pro API", version="2.0.0")
+app = FastAPI(title="MyPlanReader API", version="3.0.0")
 
 # Stripe configuration
 stripe.api_key = os.environ.get('STRIPE_SECRET_KEY', '')
@@ -39,6 +40,128 @@ db = client.taskmanager
 tasks_collection = db.tasks
 materials_collection = db.materials
 payments_collection = db.payments
+users_collection = db.users
+projects_collection = db.projects
+
+# ============================================
+# USER AUTHENTICATION
+# ============================================
+
+class UserSignUp(BaseModel):
+    email: str
+    password: str
+    name: Optional[str] = ""
+
+class UserSignIn(BaseModel):
+    email: str
+    password: str
+
+def hash_password(password: str) -> str:
+    """Simple password hashing"""
+    return hashlib.sha256(password.encode()).hexdigest()
+
+@app.post("/api/auth/signup")
+async def signup(user: UserSignUp):
+    """Register a new user"""
+    # Check if user exists
+    existing = users_collection.find_one({"email": user.email.lower()})
+    if existing:
+        raise HTTPException(status_code=400, detail="Email already registered")
+    
+    user_data = {
+        "id": str(uuid.uuid4()),
+        "email": user.email.lower(),
+        "password": hash_password(user.password),
+        "name": user.name or user.email.split("@")[0],
+        "created_at": datetime.utcnow().isoformat()
+    }
+    users_collection.insert_one(user_data)
+    
+    return {
+        "success": True,
+        "user": {
+            "id": user_data["id"],
+            "email": user_data["email"],
+            "name": user_data["name"]
+        }
+    }
+
+@app.post("/api/auth/signin")
+async def signin(credentials: UserSignIn):
+    """Sign in a user"""
+    user = users_collection.find_one({
+        "email": credentials.email.lower(),
+        "password": hash_password(credentials.password)
+    })
+    
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+    
+    return {
+        "success": True,
+        "user": {
+            "id": user["id"],
+            "email": user["email"],
+            "name": user.get("name", "")
+        }
+    }
+
+@app.get("/api/auth/user/{user_id}")
+async def get_user(user_id: str):
+    """Get user by ID"""
+    user = users_collection.find_one({"id": user_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    return {
+        "id": user["id"],
+        "email": user["email"],
+        "name": user.get("name", "")
+    }
+
+# ============================================
+# USER PROJECTS
+# ============================================
+
+@app.get("/api/projects/{user_id}")
+async def get_user_projects(user_id: str):
+    """Get all projects for a user"""
+    projects = list(projects_collection.find({"user_id": user_id}).sort("created_at", -1))
+    
+    result = []
+    for p in projects:
+        result.append({
+            "id": p["id"],
+            "filename": p.get("filename", "Unknown"),
+            "status": p.get("status", "pending"),
+            "trades": p.get("selected_trades", []),
+            "total_fee": p.get("total_fee", 0),
+            "donation_amount": 1.00,  # $1 to Tunnel to Towers
+            "materials": p.get("materials"),
+            "created_at": p.get("created_at")
+        })
+    
+    return {"projects": result}
+
+@app.get("/api/project/{project_id}")
+async def get_project(project_id: str):
+    """Get a specific project"""
+    project = projects_collection.find_one({"id": project_id})
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    return {
+        "id": project["id"],
+        "user_id": project.get("user_id"),
+        "filename": project.get("filename"),
+        "status": project.get("status"),
+        "trades": project.get("selected_trades", []),
+        "total_fee": project.get("total_fee"),
+        "donation_amount": 1.00,
+        "materials": project.get("materials"),
+        "page_count": project.get("page_count"),
+        "created_at": project.get("created_at")
+    }
 
 # ============================================
 # MATERIAL CALCULATION FORMULAS (All rounded UP)
