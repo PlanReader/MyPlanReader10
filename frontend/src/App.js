@@ -19,7 +19,11 @@ import {
   CheckCircle2,
   Circle,
   Loader2,
-  Wrench
+  Wrench,
+  ShoppingCart,
+  Download,
+  Package,
+  Ruler
 } from 'lucide-react';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -37,22 +41,64 @@ const STATUSES = {
   completed: { label: 'Completed', color: 'text-green-600 bg-green-50', icon: CheckCircle2 }
 };
 
-// Trade configurations with colors
+// Trade configurations with colors and measurement fields
 const TRADES = {
-  'Drywall': { color: 'text-amber-700 bg-amber-50', icon: '🧱' },
-  'HVAC': { color: 'text-cyan-700 bg-cyan-50', icon: '❄️' },
-  'Painting': { color: 'text-pink-700 bg-pink-50', icon: '🎨' },
-  'Electrical': { color: 'text-yellow-700 bg-yellow-50', icon: '⚡' },
-  'Plumbing': { color: 'text-blue-700 bg-blue-50', icon: '🔧' },
-  'General': { color: 'text-gray-700 bg-gray-50', icon: '🔨' }
+  'Drywall': { 
+    color: 'text-amber-700 bg-amber-50', 
+    icon: '🧱',
+    measurementFields: [
+      { key: 'length_ft', label: 'Wall Length (ft)', type: 'number', placeholder: '12.5' },
+      { key: 'height_ft', label: 'Wall Height (ft)', type: 'number', placeholder: '8', default: 8 }
+    ]
+  },
+  'HVAC': { 
+    color: 'text-cyan-700 bg-cyan-50', 
+    icon: '❄️',
+    measurementFields: [
+      { key: 'sq_ft_coverage', label: 'Coverage Area (sq ft)', type: 'number', placeholder: '1500' },
+      { key: 'num_vents', label: 'Number of Vents', type: 'number', placeholder: '4', default: 1 }
+    ]
+  },
+  'Painting': { 
+    color: 'text-pink-700 bg-pink-50', 
+    icon: '🎨',
+    measurementFields: [
+      { key: 'sq_ft', label: 'Surface Area (sq ft)', type: 'number', placeholder: '850' },
+      { key: 'coats', label: 'Number of Coats', type: 'number', placeholder: '2', default: 2 }
+    ]
+  },
+  'Electrical': { 
+    color: 'text-yellow-700 bg-yellow-50', 
+    icon: '⚡',
+    measurementFields: [
+      { key: 'num_outlets', label: 'Number of Outlets', type: 'number', placeholder: '10' },
+      { key: 'num_switches', label: 'Number of Switches', type: 'number', placeholder: '5' },
+      { key: 'wire_runs_ft', label: 'Wire Runs (ft)', type: 'number', placeholder: '200' }
+    ]
+  },
+  'Plumbing': { 
+    color: 'text-blue-700 bg-blue-50', 
+    icon: '🔧',
+    measurementFields: [
+      { key: 'pipe_runs_ft', label: 'Pipe Runs (ft)', type: 'number', placeholder: '100' },
+      { key: 'num_fixtures', label: 'Number of Fixtures', type: 'number', placeholder: '3' }
+    ]
+  },
+  'General': { color: 'text-gray-700 bg-gray-50', icon: '🔨', measurementFields: [] }
 };
 
 const DEFAULT_CATEGORIES = ['General', 'Work', 'Personal', 'Shopping', 'Health', 'Finance'];
 const DEFAULT_TRADES = ['Drywall', 'HVAC', 'Painting', 'Electrical', 'Plumbing', 'General'];
 
+// Format material item names
+const formatMaterialName = (name) => {
+  return name.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+};
+
 function App() {
   const [tasks, setTasks] = useState([]);
   const [dashboard, setDashboard] = useState(null);
+  const [shoppingList, setShoppingList] = useState(null);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
@@ -72,7 +118,8 @@ function App() {
     priority: 'medium',
     category: 'General',
     trade: '',
-    due_date: ''
+    due_date: '',
+    measurements: {}
   });
 
   // Fetch tasks
@@ -92,6 +139,16 @@ function App() {
       setDashboard(response.data);
     } catch (error) {
       console.error('Error fetching dashboard:', error);
+    }
+  }, []);
+
+  // Fetch shopping list
+  const fetchShoppingList = useCallback(async () => {
+    try {
+      const response = await axios.get(`${BACKEND_URL}/api/shopping-list`);
+      setShoppingList(response.data);
+    } catch (error) {
+      console.error('Error fetching shopping list:', error);
     }
   }, []);
 
@@ -121,24 +178,31 @@ function App() {
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
-      await Promise.all([fetchTasks(), fetchDashboard(), fetchCategories(), fetchTrades()]);
+      await Promise.all([fetchTasks(), fetchDashboard(), fetchCategories(), fetchTrades(), fetchShoppingList()]);
       setLoading(false);
     };
     loadData();
-  }, [fetchTasks, fetchDashboard, fetchCategories, fetchTrades]);
+  }, [fetchTasks, fetchDashboard, fetchCategories, fetchTrades, fetchShoppingList]);
 
   // Handle form submit
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      const submitData = { ...formData };
+      // Only include measurements if there are values
+      if (Object.keys(submitData.measurements).length === 0) {
+        delete submitData.measurements;
+      }
+      
       if (editingTask) {
-        await axios.put(`${BACKEND_URL}/api/tasks/${editingTask.id}`, formData);
+        await axios.put(`${BACKEND_URL}/api/tasks/${editingTask.id}`, submitData);
       } else {
-        await axios.post(`${BACKEND_URL}/api/tasks`, formData);
+        await axios.post(`${BACKEND_URL}/api/tasks`, submitData);
       }
       await fetchTasks();
       await fetchDashboard();
       await fetchTrades();
+      await fetchShoppingList();
       closeModal();
     } catch (error) {
       console.error('Error saving task:', error);
@@ -152,6 +216,7 @@ function App() {
       await axios.delete(`${BACKEND_URL}/api/tasks/${taskId}`);
       await fetchTasks();
       await fetchDashboard();
+      await fetchShoppingList();
     } catch (error) {
       console.error('Error deleting task:', error);
     }
@@ -168,6 +233,16 @@ function App() {
     }
   };
 
+  // Export shopping list
+  const handleExportShoppingList = () => {
+    window.open(`${BACKEND_URL}/api/export/shopping-list`, '_blank');
+  };
+
+  // Export tasks
+  const handleExportTasks = () => {
+    window.open(`${BACKEND_URL}/api/export/tasks`, '_blank');
+  };
+
   // Open modal for new task
   const openNewTaskModal = () => {
     setEditingTask(null);
@@ -178,7 +253,8 @@ function App() {
       priority: 'medium',
       category: 'General',
       trade: '',
-      due_date: ''
+      due_date: '',
+      measurements: {}
     });
     setShowModal(true);
   };
@@ -193,7 +269,8 @@ function App() {
       priority: task.priority,
       category: task.category || 'General',
       trade: task.trade || '',
-      due_date: task.due_date || ''
+      due_date: task.due_date || '',
+      measurements: task.measurements || {}
     });
     setShowModal(true);
   };
@@ -241,7 +318,7 @@ function App() {
   return (
     <div className="min-h-screen bg-white" data-testid="app-container">
       {/* Sidebar */}
-      <aside className="fixed left-0 top-0 h-full w-60 bg-[#f7f6f3] border-r border-[#e3e2de] p-4" data-testid="sidebar">
+      <aside className="fixed left-0 top-0 h-full w-60 bg-[#f7f6f3] border-r border-[#e3e2de] p-4 overflow-y-auto" data-testid="sidebar">
         <div className="mb-8">
           <h1 className="text-xl font-semibold text-[#37352f] flex items-center gap-2">
             <CheckSquare className="w-6 h-6 text-blue-600" />
@@ -269,6 +346,16 @@ function App() {
           >
             <LayoutDashboard className="w-4 h-4" />
             Dashboard
+          </button>
+          <button
+            onClick={() => setActiveView('shopping')}
+            className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
+              activeView === 'shopping' ? 'bg-[#efefef] text-[#37352f] font-medium' : 'text-[#9b9a97] hover:bg-[#efefef]'
+            }`}
+            data-testid="nav-shopping"
+          >
+            <ShoppingCart className="w-4 h-4" />
+            Shopping List
           </button>
         </nav>
 
@@ -314,6 +401,18 @@ function App() {
             ))}
           </div>
         </div>
+
+        {/* Materials Summary */}
+        {shoppingList && shoppingList.total_items > 0 && (
+          <div className="mt-4 p-3 bg-green-50 rounded-lg border border-green-200" data-testid="materials-summary">
+            <h3 className="text-xs font-medium text-green-700 uppercase tracking-wider mb-2 flex items-center gap-1">
+              <Package className="w-3 h-3" />
+              Materials
+            </h3>
+            <p className="text-sm text-green-800 font-medium">{shoppingList.total_items} items</p>
+            <p className="text-xs text-green-600">{shoppingList.tasks_included} tasks with materials</p>
+          </div>
+        )}
       </aside>
 
       {/* Main Content */}
@@ -337,6 +436,12 @@ function App() {
             isOverdue={isOverdue}
             formatDate={formatDate}
           />
+        ) : activeView === 'shopping' ? (
+          <ShoppingListView 
+            shoppingList={shoppingList} 
+            handleExportShoppingList={handleExportShoppingList}
+            handleExportTasks={handleExportTasks}
+          />
         ) : (
           <DashboardView dashboard={dashboard} formatDate={formatDate} tasks={tasks} />
         )}
@@ -354,6 +459,113 @@ function App() {
           closeModal={closeModal}
         />
       )}
+    </div>
+  );
+}
+
+// Shopping List View Component
+function ShoppingListView({ shoppingList, handleExportShoppingList, handleExportTasks }) {
+  if (!shoppingList) {
+    return (
+      <div data-testid="shopping-list-view">
+        <h2 className="text-3xl font-bold text-[#37352f] mb-8">Shopping List</h2>
+        <p className="text-[#9b9a97]">Loading shopping list...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div data-testid="shopping-list-view">
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h2 className="text-3xl font-bold text-[#37352f]">Shopping List</h2>
+          <p className="text-sm text-[#9b9a97] mt-1">All quantities are whole numbers (rounded UP)</p>
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={handleExportShoppingList}
+            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
+            data-testid="export-shopping-btn"
+          >
+            <Download className="w-4 h-4" />
+            Export CSV
+          </button>
+          <button
+            onClick={handleExportTasks}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+            data-testid="export-tasks-btn"
+          >
+            <Download className="w-4 h-4" />
+            Export Tasks
+          </button>
+        </div>
+      </div>
+
+      {/* Aggregated Shopping List */}
+      <div className="bg-white border border-[#e3e2de] rounded-lg p-6 mb-8" data-testid="aggregated-list">
+        <h3 className="text-lg font-semibold text-[#37352f] mb-4 flex items-center gap-2">
+          <ShoppingCart className="w-5 h-5 text-green-600" />
+          Aggregated Materials ({shoppingList.total_items} items)
+        </h3>
+        
+        {Object.keys(shoppingList.shopping_list).length > 0 ? (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+            {Object.entries(shoppingList.shopping_list).map(([item, qty]) => (
+              <div 
+                key={item} 
+                className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                data-testid={`material-${item}`}
+              >
+                <span className="text-sm text-[#37352f]">{formatMaterialName(item)}</span>
+                <span className="text-lg font-bold text-green-700">{qty}</span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-[#9b9a97] text-center py-8">
+            No materials calculated yet. Add measurements to your tasks to generate a shopping list.
+          </p>
+        )}
+      </div>
+
+      {/* Breakdown by Task */}
+      <div className="bg-white border border-[#e3e2de] rounded-lg p-6" data-testid="breakdown-by-task">
+        <h3 className="text-lg font-semibold text-[#37352f] mb-4 flex items-center gap-2">
+          <Package className="w-5 h-5 text-blue-600" />
+          Materials by Task
+        </h3>
+        
+        {shoppingList.breakdown_by_task && shoppingList.breakdown_by_task.length > 0 ? (
+          <div className="space-y-4">
+            {shoppingList.breakdown_by_task.map((task, idx) => (
+              <div key={idx} className="border border-[#e3e2de] rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <h4 className="font-medium text-[#37352f]">{task.task_title}</h4>
+                  {task.trade && TRADES[task.trade] && (
+                    <span className={`text-xs px-2 py-0.5 rounded ${TRADES[task.trade].color}`}>
+                      {TRADES[task.trade].icon} {task.trade}
+                    </span>
+                  )}
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                  {Object.entries(task.materials).map(([item, qty]) => (
+                    typeof qty === 'number' && (
+                      <div key={item} className="text-sm">
+                        <span className="text-[#9b9a97]">{formatMaterialName(item)}:</span>{' '}
+                        <span className="font-medium text-[#37352f]">{qty}</span>
+                      </div>
+                    )
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-[#9b9a97] text-center py-8">
+            No tasks with materials yet.
+          </p>
+        )}
+      </div>
     </div>
   );
 }
@@ -377,19 +589,16 @@ function TasksView({
   isOverdue,
   formatDate
 }) {
-  // Group tasks by status
   const tasksByStatus = {
     todo: tasks.filter(t => t.status === 'todo'),
     in_progress: tasks.filter(t => t.status === 'in_progress'),
     completed: tasks.filter(t => t.status === 'completed')
   };
 
-  // Check if any trade filter is active
   const hasActiveTradeFilter = filterTrade !== 'all';
 
   return (
     <div data-testid="tasks-view">
-      {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
           <h2 className="text-3xl font-bold text-[#37352f]">Tasks</h2>
@@ -417,7 +626,6 @@ function TasksView({
         </button>
       </div>
 
-      {/* Search and Filters */}
       <div className="flex items-center gap-4 mb-6 flex-wrap">
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[#9b9a97]" />
@@ -472,7 +680,6 @@ function TasksView({
         </div>
       </div>
 
-      {/* Task Columns (Kanban-style) */}
       <div className="grid grid-cols-3 gap-6" data-testid="task-columns">
         {Object.entries(STATUSES).map(([status, config]) => {
           const StatusIcon = config.icon;
@@ -515,6 +722,7 @@ function TaskCard({ task, openEditModal, handleDelete, handleToggleComplete, isO
   const priorityConfig = PRIORITIES[task.priority];
   const tradeConfig = task.trade ? TRADES[task.trade] || TRADES['General'] : null;
   const overdue = isOverdue(task);
+  const hasMaterials = task.materials && Object.keys(task.materials).length > 0;
 
   return (
     <div
@@ -544,12 +752,10 @@ function TaskCard({ task, openEditModal, handleDelete, handleToggleComplete, isO
           )}
           
           <div className="flex items-center gap-2 mt-2 flex-wrap">
-            {/* Priority Badge */}
             <span className={`text-xs px-2 py-0.5 rounded ${priorityConfig.color}`} data-testid={`priority-${task.id}`}>
               {priorityConfig.icon} {priorityConfig.label}
             </span>
             
-            {/* Trade Badge - NEW */}
             {task.trade && tradeConfig && (
               <span className={`text-xs px-2 py-0.5 rounded flex items-center gap-1 ${tradeConfig.color}`} data-testid={`trade-${task.id}`}>
                 <Wrench className="w-3 h-3" />
@@ -557,7 +763,13 @@ function TaskCard({ task, openEditModal, handleDelete, handleToggleComplete, isO
               </span>
             )}
             
-            {/* Category Badge */}
+            {hasMaterials && (
+              <span className="text-xs px-2 py-0.5 rounded bg-green-50 text-green-700 flex items-center gap-1" data-testid={`materials-badge-${task.id}`}>
+                <Package className="w-3 h-3" />
+                Materials
+              </span>
+            )}
+            
             {task.category && (
               <span className="text-xs px-2 py-0.5 rounded bg-purple-50 text-purple-600" data-testid={`category-${task.id}`}>
                 <Tag className="w-3 h-3 inline mr-1" />
@@ -565,7 +777,6 @@ function TaskCard({ task, openEditModal, handleDelete, handleToggleComplete, isO
               </span>
             )}
             
-            {/* Due Date */}
             {task.due_date && (
               <span className={`text-xs px-2 py-0.5 rounded flex items-center gap-1 ${
                 overdue ? 'bg-red-50 text-red-600' : 'bg-gray-100 text-gray-600'
@@ -577,7 +788,6 @@ function TaskCard({ task, openEditModal, handleDelete, handleToggleComplete, isO
           </div>
         </div>
         
-        {/* Actions */}
         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
           <button
             onClick={(e) => { e.stopPropagation(); openEditModal(task); }}
@@ -605,7 +815,6 @@ function DashboardView({ dashboard, formatDate, tasks }) {
 
   const completionPercentage = dashboard.completion_rate || 0;
 
-  // Calculate trade breakdown
   const tradeBreakdown = {};
   tasks.forEach(task => {
     if (task.trade) {
@@ -617,37 +826,14 @@ function DashboardView({ dashboard, formatDate, tasks }) {
     <div data-testid="dashboard-view">
       <h2 className="text-3xl font-bold text-[#37352f] mb-8">Dashboard</h2>
       
-      {/* Stats Cards */}
       <div className="grid grid-cols-4 gap-4 mb-8" data-testid="stats-cards">
-        <StatCard
-          label="Total Tasks"
-          value={dashboard.total_tasks}
-          icon={<List className="w-5 h-5 text-blue-600" />}
-          color="bg-blue-50"
-        />
-        <StatCard
-          label="To Do"
-          value={dashboard.status_breakdown.todo}
-          icon={<Circle className="w-5 h-5 text-gray-500" />}
-          color="bg-gray-50"
-        />
-        <StatCard
-          label="In Progress"
-          value={dashboard.status_breakdown.in_progress}
-          icon={<Clock className="w-5 h-5 text-orange-500" />}
-          color="bg-orange-50"
-        />
-        <StatCard
-          label="Completed"
-          value={dashboard.status_breakdown.completed}
-          icon={<CheckCircle2 className="w-5 h-5 text-green-600" />}
-          color="bg-green-50"
-        />
+        <StatCard label="Total Tasks" value={dashboard.total_tasks} icon={<List className="w-5 h-5 text-blue-600" />} color="bg-blue-50" />
+        <StatCard label="To Do" value={dashboard.status_breakdown.todo} icon={<Circle className="w-5 h-5 text-gray-500" />} color="bg-gray-50" />
+        <StatCard label="In Progress" value={dashboard.status_breakdown.in_progress} icon={<Clock className="w-5 h-5 text-orange-500" />} color="bg-orange-50" />
+        <StatCard label="Completed" value={dashboard.status_breakdown.completed} icon={<CheckCircle2 className="w-5 h-5 text-green-600" />} color="bg-green-50" />
       </div>
 
-      {/* Progress and Priority Row */}
       <div className="grid grid-cols-2 gap-6 mb-8">
-        {/* Completion Progress */}
         <div className="bg-white border border-[#e3e2de] rounded-lg p-6" data-testid="completion-progress">
           <h3 className="text-lg font-semibold text-[#37352f] mb-4">Completion Progress</h3>
           <div className="relative pt-1">
@@ -657,15 +843,11 @@ function DashboardView({ dashboard, formatDate, tasks }) {
               </span>
             </div>
             <div className="overflow-hidden h-4 mb-4 text-xs flex rounded-full bg-gray-100">
-              <div
-                style={{ width: `${completionPercentage}%` }}
-                className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-green-500 transition-all duration-500"
-              ></div>
+              <div style={{ width: `${completionPercentage}%` }} className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-green-500 transition-all duration-500"></div>
             </div>
           </div>
         </div>
 
-        {/* Priority Breakdown */}
         <div className="bg-white border border-[#e3e2de] rounded-lg p-6" data-testid="priority-breakdown">
           <h3 className="text-lg font-semibold text-[#37352f] mb-4">Priority Breakdown</h3>
           <div className="space-y-3">
@@ -676,9 +858,7 @@ function DashboardView({ dashboard, formatDate, tasks }) {
         </div>
       </div>
 
-      {/* Trade Breakdown and Overdue */}
       <div className="grid grid-cols-2 gap-6 mb-8">
-        {/* Trade Breakdown - NEW */}
         <div className="bg-white border border-[#e3e2de] rounded-lg p-6" data-testid="trade-breakdown">
           <h3 className="text-lg font-semibold text-[#37352f] mb-4 flex items-center gap-2">
             <Wrench className="w-5 h-5 text-cyan-600" />
@@ -701,7 +881,6 @@ function DashboardView({ dashboard, formatDate, tasks }) {
           </div>
         </div>
 
-        {/* Categories */}
         <div className="bg-white border border-[#e3e2de] rounded-lg p-6" data-testid="categories-breakdown">
           <h3 className="text-lg font-semibold text-[#37352f] mb-4">Categories</h3>
           <div className="space-y-2">
@@ -714,14 +893,10 @@ function DashboardView({ dashboard, formatDate, tasks }) {
                 <span className="text-sm font-medium text-[#9b9a97]">{count}</span>
               </div>
             ))}
-            {Object.keys(dashboard.categories || {}).length === 0 && (
-              <p className="text-sm text-[#9b9a97]">No categories yet</p>
-            )}
           </div>
         </div>
       </div>
 
-      {/* Overdue Tasks */}
       <div className="bg-white border border-[#e3e2de] rounded-lg p-6" data-testid="overdue-tasks">
         <h3 className="text-lg font-semibold text-[#37352f] mb-4 flex items-center gap-2">
           <AlertCircle className="w-5 h-5 text-red-500" />
@@ -754,7 +929,6 @@ function DashboardView({ dashboard, formatDate, tasks }) {
   );
 }
 
-// Stat Card Component
 function StatCard({ label, value, icon, color }) {
   return (
     <div className={`${color} rounded-lg p-4 border border-[#e3e2de]`} data-testid={`stat-${label.toLowerCase().replace(' ', '-')}`}>
@@ -769,10 +943,8 @@ function StatCard({ label, value, icon, color }) {
   );
 }
 
-// Priority Bar Component
 function PriorityBar({ label, count, total, color }) {
   const percentage = total > 0 ? (count / total) * 100 : 0;
-  
   return (
     <div className="flex items-center gap-3">
       <span className="text-sm text-[#9b9a97] w-16">{label}</span>
@@ -784,8 +956,21 @@ function PriorityBar({ label, count, total, color }) {
   );
 }
 
-// Task Modal Component
+// Task Modal Component with Measurements
 function TaskModal({ formData, setFormData, editingTask, categories, trades, handleSubmit, closeModal }) {
+  const selectedTrade = formData.trade ? TRADES[formData.trade] : null;
+  const measurementFields = selectedTrade?.measurementFields || [];
+
+  const handleMeasurementChange = (key, value) => {
+    setFormData({
+      ...formData,
+      measurements: {
+        ...formData.measurements,
+        [key]: value ? parseFloat(value) : undefined
+      }
+    });
+  };
+
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 modal-backdrop" data-testid="task-modal">
       <div className="bg-white rounded-lg w-full max-w-lg p-6 modal-content max-h-[90vh] overflow-y-auto" data-testid="modal-content">
@@ -799,7 +984,6 @@ function TaskModal({ formData, setFormData, editingTask, categories, trades, han
         </div>
         
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Title */}
           <div>
             <label className="block text-sm font-medium text-[#37352f] mb-1">Title *</label>
             <input
@@ -813,20 +997,18 @@ function TaskModal({ formData, setFormData, editingTask, categories, trades, han
             />
           </div>
           
-          {/* Description */}
           <div>
             <label className="block text-sm font-medium text-[#37352f] mb-1">Description</label>
             <textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               className="w-full px-3 py-2 border border-[#e3e2de] rounded-md text-sm resize-none"
-              rows={3}
+              rows={2}
               placeholder="Add more details..."
               data-testid="input-description"
             />
           </div>
           
-          {/* Status and Priority Row */}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-[#37352f] mb-1">
@@ -863,7 +1045,6 @@ function TaskModal({ formData, setFormData, editingTask, categories, trades, han
             </div>
           </div>
           
-          {/* Category and Trade Row */}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-[#37352f] mb-1">
@@ -889,7 +1070,7 @@ function TaskModal({ formData, setFormData, editingTask, categories, trades, han
               </label>
               <select
                 value={formData.trade}
-                onChange={(e) => setFormData({ ...formData, trade: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, trade: e.target.value, measurements: {} })}
                 className="w-full px-3 py-2 border border-[#e3e2de] rounded-md text-sm bg-white"
                 data-testid="select-trade"
               >
@@ -901,7 +1082,6 @@ function TaskModal({ formData, setFormData, editingTask, categories, trades, han
             </div>
           </div>
           
-          {/* Due Date */}
           <div>
             <label className="block text-sm font-medium text-[#37352f] mb-1">
               <Calendar className="w-4 h-4 inline mr-1" />
@@ -915,8 +1095,34 @@ function TaskModal({ formData, setFormData, editingTask, categories, trades, han
               data-testid="input-due-date"
             />
           </div>
+
+          {/* Measurements Section */}
+          {measurementFields.length > 0 && (
+            <div className="border-t border-[#e3e2de] pt-4 mt-4">
+              <h4 className="text-sm font-medium text-[#37352f] mb-3 flex items-center gap-2">
+                <Ruler className="w-4 h-4 text-green-600" />
+                Measurements (for material calculation)
+              </h4>
+              <p className="text-xs text-[#9b9a97] mb-3">All material quantities will be rounded UP to whole numbers</p>
+              <div className="grid grid-cols-2 gap-3">
+                {measurementFields.map(field => (
+                  <div key={field.key}>
+                    <label className="block text-xs text-[#9b9a97] mb-1">{field.label}</label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      value={formData.measurements[field.key] || ''}
+                      onChange={(e) => handleMeasurementChange(field.key, e.target.value)}
+                      className="w-full px-3 py-2 border border-[#e3e2de] rounded-md text-sm"
+                      placeholder={field.placeholder}
+                      data-testid={`input-${field.key}`}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
           
-          {/* Submit Button */}
           <div className="flex justify-end gap-3 pt-4">
             <button
               type="button"
