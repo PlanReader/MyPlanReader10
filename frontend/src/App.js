@@ -480,6 +480,9 @@ function UploadPortal({ onProcessed }) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingStep, setProcessingStep] = useState('');
   const [progress, setProgress] = useState(0);
+  const [isCheckingOut, setIsCheckingOut] = useState(false);
+  const [paymentSuccess, setPaymentSuccess] = useState(false);
+  const [stripePromise, setStripePromise] = useState(null);
 
   const BASE_PRICE = 25;
   const ADDON_PRICE = 10;
@@ -492,6 +495,84 @@ function UploadPortal({ onProcessed }) {
 
   const totalPrice = BASE_PRICE + addOns.filter(a => selectedTrades.includes(a.id)).length * ADDON_PRICE;
 
+  // Initialize Stripe
+  useEffect(() => {
+    const initStripe = async () => {
+      try {
+        const response = await axios.get(`${BACKEND_URL}/api/stripe-config`);
+        if (response.data.publishable_key) {
+          setStripePromise(loadStripe(response.data.publishable_key));
+        }
+      } catch (error) {
+        console.error('Error loading Stripe:', error);
+      }
+    };
+    initStripe();
+  }, []);
+
+  // Check for payment success on mount (returning from Stripe)
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const sessionId = urlParams.get('session_id');
+    const paymentId = urlParams.get('payment_id');
+    
+    if (sessionId && paymentId) {
+      verifyPaymentAndProcess(paymentId, sessionId);
+      // Clean up URL
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, []);
+
+  const verifyPaymentAndProcess = async (paymentId, sessionId) => {
+    setIsProcessing(true);
+    setProcessingStep('Verifying payment...');
+    setProgress(10);
+    
+    try {
+      const verifyResponse = await axios.get(`${BACKEND_URL}/api/verify-payment/${paymentId}?session_id=${sessionId}`);
+      
+      if (verifyResponse.data.verified) {
+        setPaymentSuccess(true);
+        setProcessingStep('Payment confirmed! Processing blueprint...');
+        setProgress(30);
+        
+        // Process the blueprint
+        const steps = [
+          'Parsing divisions...',
+          'Extracting measurements...',
+          'Calculating whole-unit quantities...',
+          'Generating shopping list...'
+        ];
+        
+        for (let i = 0; i < steps.length; i++) {
+          setProcessingStep(steps[i]);
+          setProgress(30 + ((i + 1) * 15));
+          await new Promise(r => setTimeout(r, 600));
+        }
+        
+        await axios.post(`${BACKEND_URL}/api/process-blueprint`, {
+          filename: verifyResponse.data.filename || 'Blueprint.pdf',
+          page_count: verifyResponse.data.page_count || 10,
+          selected_trades: verifyResponse.data.selected_trades || ['Drywall'],
+          total_fee: verifyResponse.data.total_amount / 100
+        });
+        
+        setProgress(100);
+        setProcessingStep('Complete! Redirecting to shopping list...');
+        await new Promise(r => setTimeout(r, 1000));
+        
+        onProcessed();
+      } else {
+        setProcessingStep('Payment verification failed. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error verifying payment:', error);
+      setProcessingStep('Error verifying payment. Please contact support.');
+    }
+    
+    setIsProcessing(false);
+  };
+
   const handleDragOver = (e) => { e.preventDefault(); setIsDragging(true); };
   const handleDragLeave = (e) => { e.preventDefault(); setIsDragging(false); };
   
@@ -501,7 +582,6 @@ function UploadPortal({ onProcessed }) {
     const file = e.dataTransfer.files[0];
     if (file && file.type === 'application/pdf') {
       setSelectedFile(file);
-      // Simulate page count detection
       setPageCount(Math.min(25, Math.floor(Math.random() * 20) + 5));
     }
   };
@@ -522,13 +602,46 @@ function UploadPortal({ onProcessed }) {
     }
   };
 
-  const handleProcess = async () => {
+  const handleCheckout = async () => {
+    if (!selectedFile || !stripePromise) return;
+    
+    setIsCheckingOut(true);
+    
+    try {
+      const response = await axios.post(`${BACKEND_URL}/api/create-checkout-session`, {
+        filename: selectedFile.name,
+        page_count: pageCount,
+        selected_trades: selectedTrades,
+        total_amount: totalPrice * 100, // Convert to cents
+        success_url: window.location.href,
+        cancel_url: window.location.href
+      });
+      
+      // Redirect to Stripe Checkout
+      const stripe = await stripePromise;
+      const { error } = await stripe.redirectToCheckout({
+        sessionId: response.data.session_id
+      });
+      
+      if (error) {
+        console.error('Stripe redirect error:', error);
+        alert('Payment failed. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error creating checkout session:', error);
+      alert('Error initiating payment. Please try again.');
+    }
+    
+    setIsCheckingOut(false);
+  };
+
+  // Demo mode - process without payment
+  const handleDemoProcess = async () => {
     if (!selectedFile) return;
     
     setIsProcessing(true);
     setProgress(0);
     
-    // Simulate processing steps
     const steps = [
       'Uploading blueprint...',
       'Parsing divisions...',
@@ -581,6 +694,12 @@ function UploadPortal({ onProcessed }) {
         {isProcessing && (
           <div className="fixed inset-0 bg-slate-900/95 flex items-center justify-center z-50" data-testid="processing-overlay">
             <div className="text-center max-w-md">
+              {paymentSuccess && (
+                <div className="mb-6 inline-flex items-center gap-2 px-4 py-2 bg-green-500/20 border border-green-500/30 rounded-full">
+                  <CheckCircle2 className="w-5 h-5 text-green-500" />
+                  <span className="text-green-400 font-medium">Payment Successful</span>
+                </div>
+              )}
               <Loader2 className="w-16 h-16 text-blue-500 animate-spin mx-auto mb-6" />
               <p className="text-xl text-white mb-4">{processingStep}</p>
               <div className="w-full bg-slate-700 rounded-full h-3 mb-2">
@@ -712,26 +831,43 @@ function UploadPortal({ onProcessed }) {
             </div>
           </div>
           
+          {/* Payment Button */}
           <button
-            onClick={handleProcess}
-            disabled={!selectedFile || isProcessing}
-            className="w-full py-4 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-700 disabled:text-slate-500 text-white font-semibold rounded-xl transition-colors flex items-center justify-center gap-2"
-            data-testid="process-btn"
+            onClick={handleCheckout}
+            disabled={!selectedFile || isCheckingOut || !stripePromise}
+            className="w-full py-4 bg-green-600 hover:bg-green-700 disabled:bg-slate-700 disabled:text-slate-500 text-white font-semibold rounded-xl transition-colors flex items-center justify-center gap-2 mb-3"
+            data-testid="checkout-btn"
           >
-            {isProcessing ? (
+            {isCheckingOut ? (
               <>
                 <Loader2 className="w-5 h-5 animate-spin" />
-                Processing...
+                Redirecting to payment...
               </>
             ) : (
               <>
-                <FileText className="w-5 h-5" />
-                Process Blueprint & Calculate Materials
+                <CreditCard className="w-5 h-5" />
+                Pay ${totalPrice} & Process Blueprint
               </>
             )}
           </button>
+
+          {/* Demo Mode Button */}
+          <button
+            onClick={handleDemoProcess}
+            disabled={!selectedFile || isProcessing}
+            className="w-full py-3 bg-slate-700 hover:bg-slate-600 disabled:bg-slate-800 disabled:text-slate-600 text-slate-300 font-medium rounded-xl transition-colors flex items-center justify-center gap-2 text-sm"
+            data-testid="demo-btn"
+          >
+            <FileText className="w-4 h-4" />
+            Demo Mode (Skip Payment)
+          </button>
           
-          <p className="text-center text-xs text-slate-600 mt-3">
+          <div className="flex items-center justify-center gap-2 mt-4 text-xs text-slate-600">
+            <Lock className="w-3 h-3" />
+            <span>Secure payment powered by Stripe</span>
+          </div>
+          
+          <p className="text-center text-xs text-slate-600 mt-2">
             All material quantities rounded UP to whole numbers
           </p>
         </div>
