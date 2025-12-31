@@ -1,0 +1,11 @@
+# Updated for planreader-2 residential tier
+def process_residential_set(file_path, page_limit=25):
+    # Process up to 25 pages to support residential blueprints
+    images = convert_from_path(file_path, last_page=page_limit)
+    
+    tier_metadata = {
+        "tier": "Residential Free",
+        "max_pages": page_limit,
+        "message": "Residential set limit (25 pages) applied."
+    }
+    return images, tier_metadata
