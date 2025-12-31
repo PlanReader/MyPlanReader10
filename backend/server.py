@@ -36,7 +36,15 @@ app.add_middleware(
 # MongoDB connection
 MONGO_URL = os.environ.get('MONGO_URL', 'mongodb://localhost:27017/taskmanager')
 client = MongoClient(MONGO_URL)
-db = client.taskmanager
+
+# Parse database name from MONGO_URL dynamically
+from urllib.parse import urlparse
+parsed_url = urlparse(MONGO_URL)
+# Extract database name from path (e.g., '/mydb' -> 'mydb')
+# Default to 'taskmanager' if no database specified in URL
+db_name = parsed_url.path.lstrip('/').split('?')[0] or 'taskmanager'
+db = client[db_name]
+
 tasks_collection = db.tasks
 materials_collection = db.materials
 payments_collection = db.payments
