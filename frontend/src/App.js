@@ -678,54 +678,53 @@ function UploadPortal({ onProcessed }) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-8" data-testid="upload-portal">
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 p-8" data-testid="upload-portal">
       <div className="max-w-3xl mx-auto">
         {/* Header */}
         <div className="text-center mb-10">
-          <h1 className="text-4xl font-bold text-white mb-3">
-            Blueprint Material Calculator
+          <h1 className="text-4xl font-bold text-gray-900 mb-2">
+            MyPlanReader™
           </h1>
-          <p className="text-slate-400 text-lg">
+          <p className="text-gray-600 text-lg">
             Upload your plans and get instant, whole-unit material quantities
           </p>
         </div>
 
         {/* Processing Overlay */}
         {isProcessing && (
-          <div className="fixed inset-0 bg-slate-900/95 flex items-center justify-center z-50" data-testid="processing-overlay">
-            <div className="text-center max-w-md">
+          <div className="fixed inset-0 bg-white/95 flex items-center justify-center z-50" data-testid="processing-overlay">
+            <div className="text-center max-w-md bg-white p-8 rounded-2xl shadow-xl border border-gray-200">
               {paymentSuccess && (
-                <div className="mb-6 inline-flex items-center gap-2 px-4 py-2 bg-green-500/20 border border-green-500/30 rounded-full">
-                  <CheckCircle2 className="w-5 h-5 text-green-500" />
-                  <span className="text-green-400 font-medium">Payment Successful</span>
+                <div className="mb-6 inline-flex items-center gap-2 px-4 py-2 bg-green-100 border border-green-300 rounded-full">
+                  <CheckCircle2 className="w-5 h-5 text-green-600" />
+                  <span className="text-green-700 font-medium">Payment Successful</span>
                 </div>
               )}
-              <Loader2 className="w-16 h-16 text-blue-500 animate-spin mx-auto mb-6" />
-              <p className="text-xl text-white mb-4">{processingStep}</p>
-              <div className="w-full bg-slate-700 rounded-full h-3 mb-2">
+              <Loader2 className="w-16 h-16 text-blue-600 animate-spin mx-auto mb-6" />
+              <p className="text-xl text-gray-800 font-medium mb-4">{processingStep}</p>
+              <div className="w-full bg-gray-200 rounded-full h-3 mb-2">
                 <div 
-                  className="bg-blue-500 h-3 rounded-full transition-all duration-500"
+                  className="bg-blue-600 h-3 rounded-full transition-all duration-500"
                   style={{ width: `${progress}%` }}
                 />
               </div>
-              <p className="text-slate-500">{progress}%</p>
+              <p className="text-gray-500">{progress}%</p>
             </div>
           </div>
         )}
 
-        {/* Upload Zone */}
+        {/* Upload Zone - Clean Light Design */}
         <div
-          className={`border-2 border-dashed rounded-2xl p-12 text-center transition-all cursor-pointer mb-8 ${
+          className={`border-2 border-dashed rounded-2xl p-8 text-center transition-all mb-8 bg-white shadow-sm ${
             isDragging 
-              ? 'border-blue-500 bg-blue-500/10' 
+              ? 'border-blue-500 bg-blue-50' 
               : selectedFile 
-                ? 'border-green-500 bg-green-500/10' 
-                : 'border-slate-600 bg-slate-800/50 hover:border-slate-500'
+                ? 'border-green-500 bg-green-50' 
+                : 'border-gray-300 hover:border-blue-400 hover:bg-gray-50'
           }`}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
-          onClick={() => document.getElementById('file-input').click()}
           data-testid="upload-zone"
         >
           <input
@@ -737,64 +736,69 @@ function UploadPortal({ onProcessed }) {
           />
           
           {selectedFile ? (
-            <div className="flex flex-col items-center">
-              <CheckCircle2 className="w-16 h-16 text-green-500 mb-4" />
-              <p className="text-xl font-semibold text-white mb-2">{selectedFile.name}</p>
-              <p className="text-slate-400">{pageCount} pages detected</p>
+            <div className="flex flex-col items-center py-4">
+              <CheckCircle2 className="w-12 h-12 text-green-600 mb-3" />
+              <p className="text-lg font-semibold text-gray-800 mb-1">{selectedFile.name}</p>
+              <p className="text-gray-500 text-sm">{pageCount} pages detected</p>
               <button 
                 onClick={(e) => { e.stopPropagation(); setSelectedFile(null); }}
-                className="mt-4 text-sm text-slate-500 hover:text-white"
+                className="mt-3 text-sm text-blue-600 hover:text-blue-800 font-medium"
               >
                 Choose different file
               </button>
             </div>
           ) : (
-            <div className="flex flex-col items-center">
-              <Upload className="w-16 h-16 text-slate-500 mb-4" />
-              <p className="text-xl font-semibold text-white mb-2">
+            <div className="flex flex-col items-center py-4">
+              <p className="text-gray-500 text-sm mb-4">Drag & drop your PDF here, or</p>
+              
+              {/* Compact Blue Upload Button */}
+              <button
+                onClick={() => document.getElementById('file-input').click()}
+                className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors flex items-center gap-2 shadow-md hover:shadow-lg"
+                data-testid="upload-btn"
+              >
+                <Upload className="w-5 h-5" />
                 Upload PDF Blueprint
-              </p>
-              <p className="text-slate-500 mb-4">
-                Drag & drop or click to select
-              </p>
-              <p className="text-sm text-slate-600">
+              </button>
+              
+              <p className="text-xs text-gray-400 mt-4">
                 Max 25 pages for single use
               </p>
             </div>
           )}
         </div>
 
-        {/* Trade Selection */}
-        <div className="bg-slate-800 rounded-2xl p-6 mb-8" data-testid="trade-selector">
-          <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-            <Wrench className="w-5 h-5 text-blue-500" />
+        {/* Trade Selection - High Contrast Light Theme */}
+        <div className="bg-white rounded-2xl p-6 mb-6 shadow-sm border border-gray-200" data-testid="trade-selector">
+          <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <Wrench className="w-5 h-5 text-blue-600" />
             Trade Selection
           </h2>
           
           {/* Base Trade */}
-          <div className="flex items-center justify-between p-4 bg-blue-600/20 border border-blue-500/30 rounded-xl mb-4">
+          <div className="flex items-center justify-between p-4 bg-blue-50 border-2 border-blue-200 rounded-xl mb-4">
             <div className="flex items-center gap-3">
               <div className="w-6 h-6 bg-blue-600 rounded flex items-center justify-center">
                 <Check className="w-4 h-4 text-white" />
               </div>
               <div>
-                <p className="font-medium text-white">🧱 Drywall</p>
-                <p className="text-sm text-slate-400">Included in base price</p>
+                <p className="font-semibold text-gray-900">🧱 Drywall</p>
+                <p className="text-sm text-gray-600">Included in base price</p>
               </div>
             </div>
-            <span className="text-xl font-bold text-white">${BASE_PRICE}</span>
+            <span className="text-xl font-bold text-blue-700">${BASE_PRICE}</span>
           </div>
           
           {/* Add-ons */}
-          <p className="text-sm text-slate-500 mb-3">Add more trades:</p>
+          <p className="text-sm text-gray-600 mb-3 font-medium">Add more trades:</p>
           <div className="space-y-3">
             {addOns.map(addon => (
               <label
                 key={addon.id}
-                className={`flex items-center justify-between p-4 rounded-xl cursor-pointer transition-all ${
+                className={`flex items-center justify-between p-4 rounded-xl cursor-pointer transition-all border-2 ${
                   selectedTrades.includes(addon.id)
-                    ? 'bg-slate-700 border border-slate-600'
-                    : 'bg-slate-800/50 border border-slate-700 hover:border-slate-600'
+                    ? 'bg-blue-50 border-blue-300'
+                    : 'bg-gray-50 border-gray-200 hover:border-gray-300 hover:bg-gray-100'
                 }`}
                 data-testid={`addon-${addon.id.toLowerCase().replace(' ', '-')}`}
               >
@@ -803,31 +807,31 @@ function UploadPortal({ onProcessed }) {
                     type="checkbox"
                     checked={selectedTrades.includes(addon.id)}
                     onChange={() => toggleAddOn(addon.id)}
-                    className="w-5 h-5 rounded border-slate-600 text-blue-600 focus:ring-blue-500"
+                    className="w-5 h-5 rounded border-gray-400 text-blue-600 focus:ring-blue-500"
                   />
-                  <span className="text-white">
+                  <span className="text-gray-800 font-medium">
                     {TRADES[addon.id]?.icon} {addon.label}
                   </span>
                 </div>
-                <span className="text-slate-400">+${addon.price}</span>
+                <span className="text-gray-600 font-semibold">+${addon.price}</span>
               </label>
             ))}
           </div>
         </div>
 
-        {/* Pricing Summary Footer */}
-        <div className="bg-slate-800 rounded-2xl p-6 sticky bottom-4" data-testid="pricing-summary">
-          <div className="flex items-center justify-between mb-4">
+        {/* Pricing Summary Footer - High Contrast */}
+        <div className="bg-white rounded-2xl p-6 shadow-lg border-2 border-gray-200 sticky bottom-4" data-testid="pricing-summary">
+          <div className="flex items-center justify-between mb-5">
             <div>
-              <p className="text-slate-400 text-sm">Total Fee</p>
-              <p className="text-3xl font-bold text-white flex items-center gap-1">
-                <DollarSign className="w-8 h-8 text-green-500" />
+              <p className="text-gray-500 text-sm font-medium">Total Fee</p>
+              <p className="text-4xl font-bold text-gray-900 flex items-center">
+                <DollarSign className="w-9 h-9 text-green-600" />
                 {totalPrice}
               </p>
             </div>
-            <div className="text-right text-sm text-slate-500">
-              <p>Base: ${BASE_PRICE}</p>
-              <p>Add-ons: ${totalPrice - BASE_PRICE}</p>
+            <div className="text-right text-sm text-gray-600">
+              <p>Base: <span className="font-semibold">${BASE_PRICE}</span></p>
+              <p>Add-ons: <span className="font-semibold">${totalPrice - BASE_PRICE}</span></p>
             </div>
           </div>
           
@@ -835,7 +839,7 @@ function UploadPortal({ onProcessed }) {
           <button
             onClick={handleCheckout}
             disabled={!selectedFile || isCheckingOut || !stripePromise}
-            className="w-full py-4 bg-green-600 hover:bg-green-700 disabled:bg-slate-700 disabled:text-slate-500 text-white font-semibold rounded-xl transition-colors flex items-center justify-center gap-2 mb-3"
+            className="w-full py-4 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:text-gray-500 text-white font-semibold rounded-xl transition-colors flex items-center justify-center gap-2 mb-3 shadow-md"
             data-testid="checkout-btn"
           >
             {isCheckingOut ? (
@@ -855,19 +859,19 @@ function UploadPortal({ onProcessed }) {
           <button
             onClick={handleDemoProcess}
             disabled={!selectedFile || isProcessing}
-            className="w-full py-3 bg-slate-700 hover:bg-slate-600 disabled:bg-slate-800 disabled:text-slate-600 text-slate-300 font-medium rounded-xl transition-colors flex items-center justify-center gap-2 text-sm"
+            className="w-full py-3 bg-gray-100 hover:bg-gray-200 disabled:bg-gray-50 disabled:text-gray-400 text-gray-700 font-medium rounded-xl transition-colors flex items-center justify-center gap-2 text-sm border border-gray-300"
             data-testid="demo-btn"
           >
             <FileText className="w-4 h-4" />
             Demo Mode (Skip Payment)
           </button>
           
-          <div className="flex items-center justify-center gap-2 mt-4 text-xs text-slate-600">
+          <div className="flex items-center justify-center gap-2 mt-4 text-xs text-gray-500">
             <Lock className="w-3 h-3" />
             <span>Secure payment powered by Stripe</span>
           </div>
           
-          <p className="text-center text-xs text-slate-600 mt-2">
+          <p className="text-center text-xs text-gray-400 mt-2">
             All material quantities rounded UP to whole numbers
           </p>
         </div>
