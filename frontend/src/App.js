@@ -18,7 +18,8 @@ import {
   AlertCircle,
   CheckCircle2,
   Circle,
-  Loader2
+  Loader2,
+  Wrench
 } from 'lucide-react';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -36,7 +37,18 @@ const STATUSES = {
   completed: { label: 'Completed', color: 'text-green-600 bg-green-50', icon: CheckCircle2 }
 };
 
+// Trade configurations with colors
+const TRADES = {
+  'Drywall': { color: 'text-amber-700 bg-amber-50', icon: '🧱' },
+  'HVAC': { color: 'text-cyan-700 bg-cyan-50', icon: '❄️' },
+  'Painting': { color: 'text-pink-700 bg-pink-50', icon: '🎨' },
+  'Electrical': { color: 'text-yellow-700 bg-yellow-50', icon: '⚡' },
+  'Plumbing': { color: 'text-blue-700 bg-blue-50', icon: '🔧' },
+  'General': { color: 'text-gray-700 bg-gray-50', icon: '🔨' }
+};
+
 const DEFAULT_CATEGORIES = ['General', 'Work', 'Personal', 'Shopping', 'Health', 'Finance'];
+const DEFAULT_TRADES = ['Drywall', 'HVAC', 'Painting', 'Electrical', 'Plumbing', 'General'];
 
 function App() {
   const [tasks, setTasks] = useState([]);
@@ -45,10 +57,12 @@ function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterPriority, setFilterPriority] = useState('all');
+  const [filterTrade, setFilterTrade] = useState('all');
   const [showModal, setShowModal] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
-  const [activeView, setActiveView] = useState('tasks'); // 'tasks' or 'dashboard'
+  const [activeView, setActiveView] = useState('tasks');
   const [categories, setCategories] = useState(DEFAULT_CATEGORIES);
+  const [trades, setTrades] = useState(DEFAULT_TRADES);
   
   // Form state
   const [formData, setFormData] = useState({
@@ -57,6 +71,7 @@ function App() {
     status: 'todo',
     priority: 'medium',
     category: 'General',
+    trade: '',
     due_date: ''
   });
 
@@ -91,15 +106,26 @@ function App() {
     }
   }, []);
 
+  // Fetch trades
+  const fetchTrades = useCallback(async () => {
+    try {
+      const response = await axios.get(`${BACKEND_URL}/api/trades`);
+      setTrades(response.data.trades || DEFAULT_TRADES);
+    } catch (error) {
+      console.error('Error fetching trades:', error);
+      setTrades(DEFAULT_TRADES);
+    }
+  }, []);
+
   // Initial load
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
-      await Promise.all([fetchTasks(), fetchDashboard(), fetchCategories()]);
+      await Promise.all([fetchTasks(), fetchDashboard(), fetchCategories(), fetchTrades()]);
       setLoading(false);
     };
     loadData();
-  }, [fetchTasks, fetchDashboard, fetchCategories]);
+  }, [fetchTasks, fetchDashboard, fetchCategories, fetchTrades]);
 
   // Handle form submit
   const handleSubmit = async (e) => {
@@ -112,6 +138,7 @@ function App() {
       }
       await fetchTasks();
       await fetchDashboard();
+      await fetchTrades();
       closeModal();
     } catch (error) {
       console.error('Error saving task:', error);
@@ -150,6 +177,7 @@ function App() {
       status: 'todo',
       priority: 'medium',
       category: 'General',
+      trade: '',
       due_date: ''
     });
     setShowModal(true);
@@ -164,6 +192,7 @@ function App() {
       status: task.status,
       priority: task.priority,
       category: task.category || 'General',
+      trade: task.trade || '',
       due_date: task.due_date || ''
     });
     setShowModal(true);
@@ -181,7 +210,8 @@ function App() {
                           (task.description && task.description.toLowerCase().includes(searchQuery.toLowerCase()));
     const matchesStatus = filterStatus === 'all' || task.status === filterStatus;
     const matchesPriority = filterPriority === 'all' || task.priority === filterPriority;
-    return matchesSearch && matchesStatus && matchesPriority;
+    const matchesTrade = filterTrade === 'all' || task.trade === filterTrade;
+    return matchesSearch && matchesStatus && matchesPriority && matchesTrade;
   });
 
   // Check if task is overdue
@@ -262,6 +292,28 @@ function App() {
             </div>
           </div>
         )}
+
+        {/* Trade Filter Quick Access */}
+        <div className="mt-4 p-3 bg-white rounded-lg border border-[#e3e2de]" data-testid="trade-quick-filter">
+          <h3 className="text-xs font-medium text-[#9b9a97] uppercase tracking-wider mb-3 flex items-center gap-1">
+            <Wrench className="w-3 h-3" />
+            Trades
+          </h3>
+          <div className="space-y-1">
+            {trades.slice(0, 5).map(trade => (
+              <button
+                key={trade}
+                onClick={() => { setFilterTrade(trade); setActiveView('tasks'); }}
+                className={`w-full text-left text-xs px-2 py-1.5 rounded transition-colors ${
+                  filterTrade === trade ? 'bg-blue-50 text-blue-700' : 'text-[#9b9a97] hover:bg-[#efefef]'
+                }`}
+                data-testid={`quick-filter-${trade.toLowerCase()}`}
+              >
+                {TRADES[trade]?.icon || '🔨'} {trade}
+              </button>
+            ))}
+          </div>
+        </div>
       </aside>
 
       {/* Main Content */}
@@ -275,6 +327,9 @@ function App() {
             setFilterStatus={setFilterStatus}
             filterPriority={filterPriority}
             setFilterPriority={setFilterPriority}
+            filterTrade={filterTrade}
+            setFilterTrade={setFilterTrade}
+            trades={trades}
             openNewTaskModal={openNewTaskModal}
             openEditModal={openEditModal}
             handleDelete={handleDelete}
@@ -283,7 +338,7 @@ function App() {
             formatDate={formatDate}
           />
         ) : (
-          <DashboardView dashboard={dashboard} formatDate={formatDate} />
+          <DashboardView dashboard={dashboard} formatDate={formatDate} tasks={tasks} />
         )}
       </main>
 
@@ -294,6 +349,7 @@ function App() {
           setFormData={setFormData}
           editingTask={editingTask}
           categories={categories}
+          trades={trades}
           handleSubmit={handleSubmit}
           closeModal={closeModal}
         />
@@ -311,6 +367,9 @@ function TasksView({
   setFilterStatus,
   filterPriority,
   setFilterPriority,
+  filterTrade,
+  setFilterTrade,
+  trades,
   openNewTaskModal,
   openEditModal,
   handleDelete,
@@ -325,11 +384,29 @@ function TasksView({
     completed: tasks.filter(t => t.status === 'completed')
   };
 
+  // Check if any trade filter is active
+  const hasActiveTradeFilter = filterTrade !== 'all';
+
   return (
     <div data-testid="tasks-view">
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
-        <h2 className="text-3xl font-bold text-[#37352f]">Tasks</h2>
+        <div>
+          <h2 className="text-3xl font-bold text-[#37352f]">Tasks</h2>
+          {hasActiveTradeFilter && (
+            <p className="text-sm text-blue-600 mt-1 flex items-center gap-1">
+              <Wrench className="w-4 h-4" />
+              Filtered by Trade: <span className="font-medium">{filterTrade}</span>
+              <button 
+                onClick={() => setFilterTrade('all')}
+                className="ml-2 text-gray-400 hover:text-gray-600"
+                data-testid="clear-trade-filter"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </p>
+          )}
+        </div>
         <button
           onClick={openNewTaskModal}
           className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
@@ -341,7 +418,7 @@ function TasksView({
       </div>
 
       {/* Search and Filters */}
-      <div className="flex items-center gap-4 mb-6">
+      <div className="flex items-center gap-4 mb-6 flex-wrap">
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[#9b9a97]" />
           <input
@@ -377,6 +454,20 @@ function TasksView({
             <option value="high">High</option>
             <option value="medium">Medium</option>
             <option value="low">Low</option>
+          </select>
+
+          <select
+            value={filterTrade}
+            onChange={(e) => setFilterTrade(e.target.value)}
+            className={`px-3 py-2 border rounded-md text-sm bg-white ${
+              hasActiveTradeFilter ? 'border-blue-500 ring-1 ring-blue-500' : 'border-[#e3e2de]'
+            }`}
+            data-testid="filter-trade"
+          >
+            <option value="all">All Trades</option>
+            {trades.map(trade => (
+              <option key={trade} value={trade}>{TRADES[trade]?.icon || '🔨'} {trade}</option>
+            ))}
           </select>
         </div>
       </div>
@@ -422,6 +513,7 @@ function TasksView({
 // Task Card Component
 function TaskCard({ task, openEditModal, handleDelete, handleToggleComplete, isOverdue, formatDate }) {
   const priorityConfig = PRIORITIES[task.priority];
+  const tradeConfig = task.trade ? TRADES[task.trade] || TRADES['General'] : null;
   const overdue = isOverdue(task);
 
   return (
@@ -456,6 +548,14 @@ function TaskCard({ task, openEditModal, handleDelete, handleToggleComplete, isO
             <span className={`text-xs px-2 py-0.5 rounded ${priorityConfig.color}`} data-testid={`priority-${task.id}`}>
               {priorityConfig.icon} {priorityConfig.label}
             </span>
+            
+            {/* Trade Badge - NEW */}
+            {task.trade && tradeConfig && (
+              <span className={`text-xs px-2 py-0.5 rounded flex items-center gap-1 ${tradeConfig.color}`} data-testid={`trade-${task.id}`}>
+                <Wrench className="w-3 h-3" />
+                {tradeConfig.icon} {task.trade}
+              </span>
+            )}
             
             {/* Category Badge */}
             {task.category && (
@@ -500,10 +600,18 @@ function TaskCard({ task, openEditModal, handleDelete, handleToggleComplete, isO
 }
 
 // Dashboard View Component
-function DashboardView({ dashboard, formatDate }) {
+function DashboardView({ dashboard, formatDate, tasks }) {
   if (!dashboard) return null;
 
   const completionPercentage = dashboard.completion_rate || 0;
+
+  // Calculate trade breakdown
+  const tradeBreakdown = {};
+  tasks.forEach(task => {
+    if (task.trade) {
+      tradeBreakdown[task.trade] = (tradeBreakdown[task.trade] || 0) + 1;
+    }
+  });
 
   return (
     <div data-testid="dashboard-view">
@@ -568,8 +676,31 @@ function DashboardView({ dashboard, formatDate }) {
         </div>
       </div>
 
-      {/* Categories and Overdue */}
-      <div className="grid grid-cols-2 gap-6">
+      {/* Trade Breakdown and Overdue */}
+      <div className="grid grid-cols-2 gap-6 mb-8">
+        {/* Trade Breakdown - NEW */}
+        <div className="bg-white border border-[#e3e2de] rounded-lg p-6" data-testid="trade-breakdown">
+          <h3 className="text-lg font-semibold text-[#37352f] mb-4 flex items-center gap-2">
+            <Wrench className="w-5 h-5 text-cyan-600" />
+            Trade Breakdown
+          </h3>
+          <div className="space-y-2">
+            {Object.entries(tradeBreakdown).length > 0 ? (
+              Object.entries(tradeBreakdown).map(([trade, count]) => (
+                <div key={trade} className="flex items-center justify-between py-2 border-b border-[#e3e2de] last:border-0">
+                  <span className="flex items-center gap-2">
+                    <span>{TRADES[trade]?.icon || '🔨'}</span>
+                    <span className="text-sm text-[#37352f]">{trade}</span>
+                  </span>
+                  <span className="text-sm font-medium text-[#9b9a97]">{count}</span>
+                </div>
+              ))
+            ) : (
+              <p className="text-sm text-[#9b9a97]">No trades assigned yet</p>
+            )}
+          </div>
+        </div>
+
         {/* Categories */}
         <div className="bg-white border border-[#e3e2de] rounded-lg p-6" data-testid="categories-breakdown">
           <h3 className="text-lg font-semibold text-[#37352f] mb-4">Categories</h3>
@@ -588,28 +719,35 @@ function DashboardView({ dashboard, formatDate }) {
             )}
           </div>
         </div>
+      </div>
 
-        {/* Overdue Tasks */}
-        <div className="bg-white border border-[#e3e2de] rounded-lg p-6" data-testid="overdue-tasks">
-          <h3 className="text-lg font-semibold text-[#37352f] mb-4 flex items-center gap-2">
-            <AlertCircle className="w-5 h-5 text-red-500" />
-            Overdue Tasks ({dashboard.overdue_count})
-          </h3>
-          <div className="space-y-2">
-            {dashboard.overdue_tasks && dashboard.overdue_tasks.length > 0 ? (
-              dashboard.overdue_tasks.map(task => (
-                <div key={task.id} className="flex items-center justify-between py-2 border-b border-[#e3e2de] last:border-0">
+      {/* Overdue Tasks */}
+      <div className="bg-white border border-[#e3e2de] rounded-lg p-6" data-testid="overdue-tasks">
+        <h3 className="text-lg font-semibold text-[#37352f] mb-4 flex items-center gap-2">
+          <AlertCircle className="w-5 h-5 text-red-500" />
+          Overdue Tasks ({dashboard.overdue_count})
+        </h3>
+        <div className="space-y-2">
+          {dashboard.overdue_tasks && dashboard.overdue_tasks.length > 0 ? (
+            dashboard.overdue_tasks.map(task => (
+              <div key={task.id} className="flex items-center justify-between py-2 border-b border-[#e3e2de] last:border-0">
+                <div className="flex items-center gap-2">
                   <span className="text-sm text-[#37352f]">{task.title}</span>
-                  <span className="text-xs text-red-500">{formatDate(task.due_date)}</span>
+                  {task.trade && (
+                    <span className="text-xs px-2 py-0.5 rounded bg-cyan-50 text-cyan-700">
+                      {TRADES[task.trade]?.icon} {task.trade}
+                    </span>
+                  )}
                 </div>
-              ))
-            ) : (
-              <p className="text-sm text-green-600 flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4" />
-                No overdue tasks! 🎉
-              </p>
-            )}
-          </div>
+                <span className="text-xs text-red-500">{formatDate(task.due_date)}</span>
+              </div>
+            ))
+          ) : (
+            <p className="text-sm text-green-600 flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4" />
+              No overdue tasks! 🎉
+            </p>
+          )}
         </div>
       </div>
     </div>
@@ -647,10 +785,10 @@ function PriorityBar({ label, count, total, color }) {
 }
 
 // Task Modal Component
-function TaskModal({ formData, setFormData, editingTask, categories, handleSubmit, closeModal }) {
+function TaskModal({ formData, setFormData, editingTask, categories, trades, handleSubmit, closeModal }) {
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 modal-backdrop" data-testid="task-modal">
-      <div className="bg-white rounded-lg w-full max-w-lg p-6 modal-content" data-testid="modal-content">
+      <div className="bg-white rounded-lg w-full max-w-lg p-6 modal-content max-h-[90vh] overflow-y-auto" data-testid="modal-content">
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-xl font-semibold text-[#37352f]">
             {editingTask ? 'Edit Task' : 'New Task'}
@@ -725,7 +863,7 @@ function TaskModal({ formData, setFormData, editingTask, categories, handleSubmi
             </div>
           </div>
           
-          {/* Category and Due Date Row */}
+          {/* Category and Trade Row */}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-[#37352f] mb-1">
@@ -746,17 +884,36 @@ function TaskModal({ formData, setFormData, editingTask, categories, handleSubmi
             
             <div>
               <label className="block text-sm font-medium text-[#37352f] mb-1">
-                <Calendar className="w-4 h-4 inline mr-1" />
-                Due Date
+                <Wrench className="w-4 h-4 inline mr-1" />
+                Trade
               </label>
-              <input
-                type="date"
-                value={formData.due_date}
-                onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
-                className="w-full px-3 py-2 border border-[#e3e2de] rounded-md text-sm"
-                data-testid="input-due-date"
-              />
+              <select
+                value={formData.trade}
+                onChange={(e) => setFormData({ ...formData, trade: e.target.value })}
+                className="w-full px-3 py-2 border border-[#e3e2de] rounded-md text-sm bg-white"
+                data-testid="select-trade"
+              >
+                <option value="">No Trade</option>
+                {trades.map(trade => (
+                  <option key={trade} value={trade}>{TRADES[trade]?.icon || '🔨'} {trade}</option>
+                ))}
+              </select>
             </div>
+          </div>
+          
+          {/* Due Date */}
+          <div>
+            <label className="block text-sm font-medium text-[#37352f] mb-1">
+              <Calendar className="w-4 h-4 inline mr-1" />
+              Due Date
+            </label>
+            <input
+              type="date"
+              value={formData.due_date}
+              onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
+              className="w-full px-3 py-2 border border-[#e3e2de] rounded-md text-sm"
+              data-testid="input-due-date"
+            />
           </div>
           
           {/* Submit Button */}
