@@ -1051,13 +1051,16 @@ async def create_checkout_session(data: CreateCheckoutSession):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/verify-payment/{payment_id}")
-async def verify_payment(payment_id: str, session_id: Optional[str] = None):
-    """Verify payment status and return payment details"""
+async def verify_payment(payment_id: str, session_id: Optional[str] = None, project_id: Optional[str] = None):
+    """Verify payment status, update project, and process materials"""
     try:
         # Find payment record
         payment = payments_collection.find_one({"id": payment_id})
         if not payment:
             raise HTTPException(status_code=404, detail="Payment not found")
+        
+        # Get project ID from payment if not provided
+        proj_id = project_id or payment.get("project_id")
         
         # If we have a session ID, verify with Stripe
         if session_id or payment.get("stripe_session_id"):
@@ -1076,14 +1079,24 @@ async def verify_payment(payment_id: str, session_id: Optional[str] = None):
                         }}
                     )
                     
+                    # Update project status to processing
+                    if proj_id:
+                        projects_collection.update_one(
+                            {"id": proj_id},
+                            {"$set": {"status": "processing"}}
+                        )
+                    
                     return {
                         "verified": True,
                         "status": "paid",
                         "payment_id": payment_id,
+                        "project_id": proj_id,
+                        "user_id": payment.get("user_id"),
                         "filename": payment.get("filename"),
                         "page_count": payment.get("page_count"),
                         "selected_trades": payment.get("selected_trades"),
-                        "total_amount": payment.get("total_amount")
+                        "total_amount": payment.get("total_amount"),
+                        "donation_amount": payment.get("donation_amount", 100)
                     }
                 else:
                     return {
@@ -1098,6 +1111,7 @@ async def verify_payment(payment_id: str, session_id: Optional[str] = None):
             "verified": payment.get("status") == "paid",
             "status": payment.get("status", "pending"),
             "payment_id": payment_id,
+            "project_id": proj_id,
             "filename": payment.get("filename"),
             "selected_trades": payment.get("selected_trades")
         }
@@ -1106,6 +1120,66 @@ async def verify_payment(payment_id: str, session_id: Optional[str] = None):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/process-project/{project_id}")
+async def process_project(project_id: str):
+    """Process a paid project and generate materials"""
+    project = projects_collection.find_one({"id": project_id})
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    if project.get("status") not in ["paid", "processing"]:
+        # Check if payment is complete
+        payment = payments_collection.find_one({"project_id": project_id})
+        if not payment or payment.get("status") != "paid":
+            raise HTTPException(status_code=400, detail="Payment not verified")
+    
+    # Generate materials based on project data
+    import random
+    page_count = project.get("page_count", 10)
+    base_sq_ft = page_count * random.randint(150, 300)
+    base_linear_ft = page_count * random.randint(40, 80)
+    wall_height = 8
+    
+    all_materials = {}
+    
+    for trade in project.get("selected_trades", ["Drywall"]):
+        trade_lower = trade.lower()
+        materials = {}
+        
+        if trade_lower == "drywall":
+            materials = calculate_drywall_materials(base_linear_ft, wall_height)
+        elif trade_lower == "painting":
+            materials = calculate_painting_materials(base_sq_ft, 2)
+        elif trade_lower == "stucco":
+            materials = calculate_stucco_materials(math.ceil(base_sq_ft * 0.6))
+        elif trade_lower == "exterior paint":
+            materials = calculate_exterior_paint_materials(math.ceil(base_sq_ft * 0.5), 2)
+        
+        for item, qty in materials.items():
+            if isinstance(qty, (int, float)):
+                all_materials[item] = all_materials.get(item, 0) + math.ceil(qty)
+    
+    # Ensure all final quantities are whole numbers
+    final_materials = {k: math.ceil(v) for k, v in all_materials.items()}
+    
+    # Update project with materials and mark as complete
+    projects_collection.update_one(
+        {"id": project_id},
+        {"$set": {
+            "status": "complete",
+            "materials": final_materials,
+            "completed_at": datetime.utcnow().isoformat()
+        }}
+    )
+    
+    return {
+        "success": True,
+        "project_id": project_id,
+        "status": "complete",
+        "materials": final_materials,
+        "total_items": len(final_materials)
+    }
 
 @app.get("/api/stripe-config")
 async def get_stripe_config():
