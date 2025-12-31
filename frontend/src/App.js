@@ -245,6 +245,24 @@ function App() {
     window.open(`${BACKEND_URL}/api/export/tasks`, '_blank');
   };
 
+  // Add new trade
+  const handleAddTrade = () => {
+    if (newTradeName.trim() && !trades.includes(newTradeName.trim())) {
+      const tradeName = newTradeName.trim();
+      setTrades([...trades, tradeName]);
+      // Add to TRADES config dynamically
+      if (!TRADES[tradeName]) {
+        TRADES[tradeName] = { 
+          color: 'text-indigo-700 bg-indigo-50', 
+          icon: '🔧',
+          measurementFields: []
+        };
+      }
+      setNewTradeName('');
+      setShowAddTradeModal(false);
+    }
+  };
+
   // Open modal for new task
   const openNewTaskModal = () => {
     setEditingTask(null);
