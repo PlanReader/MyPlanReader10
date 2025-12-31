@@ -327,13 +327,19 @@ async def create_task(task: TaskCreate):
 
 @app.put("/api/tasks/{task_id}", response_model=Task)
 async def update_task(task_id: str, task_update: TaskUpdate):
-    """Update an existing task"""
+    """Update an existing task with automatic material recalculation"""
     task = tasks_collection.find_one({"id": task_id})
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
     
     update_data = {k: v for k, v in task_update.model_dump().items() if v is not None}
     update_data["updated_at"] = datetime.utcnow().isoformat()
+    
+    # Recalculate materials if measurements or trade changed
+    trade = update_data.get("trade", task.get("trade"))
+    measurements = update_data.get("measurements", task.get("measurements"))
+    if trade and measurements:
+        update_data["materials"] = calculate_materials_for_trade(trade, measurements)
     
     tasks_collection.update_one({"id": task_id}, {"$set": update_data})
     updated_task = tasks_collection.find_one({"id": task_id})
