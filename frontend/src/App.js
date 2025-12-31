@@ -300,22 +300,22 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-white" data-testid="app-container">
-      {/* Sidebar */}
-      <aside className="fixed left-0 top-0 h-full w-60 bg-slate-900 border-r border-slate-700 p-4 overflow-y-auto" data-testid="sidebar">
+    <div className="min-h-screen bg-gray-50" data-testid="app-container">
+      {/* Sidebar - Professional Light Theme */}
+      <aside className="fixed left-0 top-0 h-full w-60 bg-white border-r border-gray-200 p-4 overflow-y-auto shadow-sm" data-testid="sidebar">
         <div className="mb-8">
-          <h1 className="text-xl font-bold text-white flex items-center gap-2">
-            <FileText className="w-6 h-6 text-blue-500" />
-            PlanReader Pro
+          <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+            <FileText className="w-6 h-6 text-blue-600" />
+            MyPlanReader™
           </h1>
-          <p className="text-xs text-slate-500 mt-1">Blueprint Material Calculator</p>
+          <p className="text-xs text-gray-500 mt-1">Blueprint Material Calculator</p>
         </div>
         
         <nav className="space-y-1">
           <button
             onClick={() => setActiveView('upload')}
             className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
-              activeView === 'upload' ? 'bg-blue-600 text-white font-medium' : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+              activeView === 'upload' ? 'bg-blue-600 text-white font-medium' : 'text-gray-600 hover:bg-gray-100'
             }`}
             data-testid="nav-upload"
           >
@@ -325,7 +325,7 @@ function App() {
           <button
             onClick={() => setActiveView('shopping')}
             className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
-              activeView === 'shopping' ? 'bg-blue-600 text-white font-medium' : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+              activeView === 'shopping' ? 'bg-blue-600 text-white font-medium' : 'text-gray-600 hover:bg-gray-100'
             }`}
             data-testid="nav-shopping"
           >
@@ -335,7 +335,7 @@ function App() {
           <button
             onClick={() => setActiveView('tasks')}
             className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
-              activeView === 'tasks' ? 'bg-blue-600 text-white font-medium' : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+              activeView === 'tasks' ? 'bg-blue-600 text-white font-medium' : 'text-gray-600 hover:bg-gray-100'
             }`}
             data-testid="nav-tasks"
           >
@@ -345,7 +345,7 @@ function App() {
           <button
             onClick={() => setActiveView('dashboard')}
             className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
-              activeView === 'dashboard' ? 'bg-blue-600 text-white font-medium' : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+              activeView === 'dashboard' ? 'bg-blue-600 text-white font-medium' : 'text-gray-600 hover:bg-gray-100'
             }`}
             data-testid="nav-dashboard"
           >
@@ -356,16 +356,16 @@ function App() {
 
         {/* Quick Stats */}
         {dashboard && (
-          <div className="mt-8 p-3 bg-slate-800 rounded-lg border border-slate-700" data-testid="quick-stats">
-            <h3 className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-3">Project Stats</h3>
+          <div className="mt-8 p-3 bg-gray-50 rounded-lg border border-gray-200" data-testid="quick-stats">
+            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Project Stats</h3>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-slate-500">Tasks</span>
-                <span className="font-medium text-white">{dashboard.total_tasks}</span>
+                <span className="text-gray-500">Tasks</span>
+                <span className="font-semibold text-gray-900">{dashboard.total_tasks}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-500">Completed</span>
-                <span className="font-medium text-green-500">{dashboard.status_breakdown.completed}</span>
+                <span className="text-gray-500">Completed</span>
+                <span className="font-semibold text-green-600">{dashboard.status_breakdown.completed}</span>
               </div>
             </div>
           </div>
@@ -373,19 +373,19 @@ function App() {
 
         {/* Materials Summary */}
         {shoppingList && shoppingList.total_items > 0 && (
-          <div className="mt-4 p-3 bg-emerald-900/30 rounded-lg border border-emerald-700/50" data-testid="materials-summary">
-            <h3 className="text-xs font-medium text-emerald-400 uppercase tracking-wider mb-2 flex items-center gap-1">
+          <div className="mt-4 p-3 bg-green-50 rounded-lg border border-green-200" data-testid="materials-summary">
+            <h3 className="text-xs font-semibold text-green-700 uppercase tracking-wider mb-2 flex items-center gap-1">
               <Package className="w-3 h-3" />
               Materials Ready
             </h3>
-            <p className="text-lg text-emerald-300 font-bold">{shoppingList.total_items} items</p>
-            <p className="text-xs text-emerald-500">{shoppingList.tasks_included} takeoffs processed</p>
+            <p className="text-lg text-green-800 font-bold">{shoppingList.total_items} items</p>
+            <p className="text-xs text-green-600">{shoppingList.tasks_included} takeoffs processed</p>
           </div>
         )}
       </aside>
 
       {/* Main Content */}
-      <main className="ml-60 min-h-screen bg-slate-50" data-testid="main-content">
+      <main className="ml-60 min-h-screen bg-gray-50" data-testid="main-content">
         {activeView === 'upload' ? (
           <UploadPortal onProcessed={handleBlueprintProcessed} />
         ) : activeView === 'shopping' ? (
