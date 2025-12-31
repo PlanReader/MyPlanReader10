@@ -69,6 +69,7 @@ def task_helper(task) -> dict:
         "status": task["status"],
         "priority": task["priority"],
         "category": task.get("category", "General"),
+        "trade": task.get("trade"),
         "due_date": task.get("due_date"),
         "created_at": task["created_at"],
         "updated_at": task["updated_at"]
