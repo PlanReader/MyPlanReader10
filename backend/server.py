@@ -794,7 +794,164 @@ async def get_pricing():
             {"name": "Exterior Paint", "price": 10.00}
         ],
         "max_pages": 25,
-        "currency": "USD"
+        "currency": "USD",
+        "stripe_publishable_key": STRIPE_PUBLISHABLE_KEY
+    }
+
+# ============================================
+# STRIPE PAYMENT ENDPOINTS
+# ============================================
+
+class CreateCheckoutSession(BaseModel):
+    filename: str
+    page_count: int
+    selected_trades: List[str]
+    total_amount: int  # Amount in cents
+    success_url: str
+    cancel_url: str
+
+@app.post("/api/create-checkout-session")
+async def create_checkout_session(data: CreateCheckoutSession):
+    """Create a Stripe Checkout session for blueprint processing payment"""
+    try:
+        # Build line items based on selected trades
+        line_items = []
+        
+        # Base Drywall trade
+        line_items.append({
+            "price_data": {
+                "currency": "usd",
+                "product_data": {
+                    "name": "Blueprint Analysis - Drywall (Base)",
+                    "description": f"Material takeoff for {data.filename} ({data.page_count} pages)",
+                },
+                "unit_amount": 2500,  # $25.00 in cents
+            },
+            "quantity": 1,
+        })
+        
+        # Add-on trades
+        addon_trades = [t for t in data.selected_trades if t != "Drywall"]
+        for trade in addon_trades:
+            line_items.append({
+                "price_data": {
+                    "currency": "usd",
+                    "product_data": {
+                        "name": f"Add-on: {trade} Analysis",
+                        "description": f"{trade} material calculations",
+                    },
+                    "unit_amount": 1000,  # $10.00 in cents
+                },
+                "quantity": 1,
+            })
+        
+        # Create payment record
+        payment_id = str(uuid.uuid4())
+        payment_record = {
+            "id": payment_id,
+            "filename": data.filename,
+            "page_count": data.page_count,
+            "selected_trades": data.selected_trades,
+            "total_amount": data.total_amount,
+            "status": "pending",
+            "created_at": datetime.utcnow().isoformat()
+        }
+        payments_collection.insert_one(payment_record)
+        
+        # Create Stripe Checkout Session
+        checkout_session = stripe.checkout.Session.create(
+            payment_method_types=["card"],
+            line_items=line_items,
+            mode="payment",
+            success_url=f"{data.success_url}?session_id={{CHECKOUT_SESSION_ID}}&payment_id={payment_id}",
+            cancel_url=data.cancel_url,
+            metadata={
+                "payment_id": payment_id,
+                "filename": data.filename,
+                "page_count": str(data.page_count),
+                "trades": ",".join(data.selected_trades)
+            }
+        )
+        
+        # Update payment record with session ID
+        payments_collection.update_one(
+            {"id": payment_id},
+            {"$set": {"stripe_session_id": checkout_session.id}}
+        )
+        
+        return {
+            "session_id": checkout_session.id,
+            "session_url": checkout_session.url,
+            "payment_id": payment_id
+        }
+        
+    except stripe.error.StripeError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/verify-payment/{payment_id}")
+async def verify_payment(payment_id: str, session_id: Optional[str] = None):
+    """Verify payment status and return payment details"""
+    try:
+        # Find payment record
+        payment = payments_collection.find_one({"id": payment_id})
+        if not payment:
+            raise HTTPException(status_code=404, detail="Payment not found")
+        
+        # If we have a session ID, verify with Stripe
+        if session_id or payment.get("stripe_session_id"):
+            sid = session_id or payment.get("stripe_session_id")
+            try:
+                session = stripe.checkout.Session.retrieve(sid)
+                
+                if session.payment_status == "paid":
+                    # Update payment status
+                    payments_collection.update_one(
+                        {"id": payment_id},
+                        {"$set": {
+                            "status": "paid",
+                            "paid_at": datetime.utcnow().isoformat(),
+                            "stripe_payment_intent": session.payment_intent
+                        }}
+                    )
+                    
+                    return {
+                        "verified": True,
+                        "status": "paid",
+                        "payment_id": payment_id,
+                        "filename": payment.get("filename"),
+                        "page_count": payment.get("page_count"),
+                        "selected_trades": payment.get("selected_trades"),
+                        "total_amount": payment.get("total_amount")
+                    }
+                else:
+                    return {
+                        "verified": False,
+                        "status": session.payment_status,
+                        "payment_id": payment_id
+                    }
+            except stripe.error.StripeError:
+                pass
+        
+        return {
+            "verified": payment.get("status") == "paid",
+            "status": payment.get("status", "pending"),
+            "payment_id": payment_id,
+            "filename": payment.get("filename"),
+            "selected_trades": payment.get("selected_trades")
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/stripe-config")
+async def get_stripe_config():
+    """Get Stripe publishable key for frontend"""
+    return {
+        "publishable_key": STRIPE_PUBLISHABLE_KEY
     }
 
 if __name__ == "__main__":
