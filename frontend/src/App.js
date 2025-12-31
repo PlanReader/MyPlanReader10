@@ -486,7 +486,61 @@ function App() {
           trades={trades}
           handleSubmit={handleSubmit}
           closeModal={closeModal}
+          onAddTrade={() => setShowAddTradeModal(true)}
         />
+      )}
+
+      {/* Add Trade Modal */}
+      {showAddTradeModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 modal-backdrop" data-testid="add-trade-modal">
+          <div className="bg-white rounded-lg w-full max-w-sm p-6 modal-content" data-testid="add-trade-content">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-[#37352f] flex items-center gap-2">
+                <Wrench className="w-5 h-5 text-blue-600" />
+                Add New Trade
+              </h3>
+              <button 
+                onClick={() => { setShowAddTradeModal(false); setNewTradeName(''); }} 
+                className="p-1 hover:bg-[#efefef] rounded"
+                data-testid="close-add-trade"
+              >
+                <X className="w-5 h-5 text-[#9b9a97]" />
+              </button>
+            </div>
+            
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-[#37352f] mb-1">Trade Name</label>
+              <input
+                type="text"
+                value={newTradeName}
+                onChange={(e) => setNewTradeName(e.target.value)}
+                className="w-full px-3 py-2 border border-[#e3e2de] rounded-md text-sm"
+                placeholder="e.g., Carpentry, Roofing, Flooring..."
+                autoFocus
+                data-testid="input-new-trade"
+                onKeyPress={(e) => e.key === 'Enter' && handleAddTrade()}
+              />
+            </div>
+            
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => { setShowAddTradeModal(false); setNewTradeName(''); }}
+                className="px-4 py-2 text-sm text-[#9b9a97] hover:bg-[#efefef] rounded-md transition-colors"
+                data-testid="cancel-add-trade"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleAddTrade}
+                disabled={!newTradeName.trim()}
+                className="px-4 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                data-testid="submit-add-trade"
+              >
+                Add Trade
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
