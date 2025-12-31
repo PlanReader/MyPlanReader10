@@ -1012,30 +1012,41 @@ async def create_checkout_session(data: CreateCheckoutSession):
             payment_method_types=["card"],
             line_items=line_items,
             mode="payment",
-            success_url=f"{data.success_url}?session_id={{CHECKOUT_SESSION_ID}}&payment_id={payment_id}",
+            success_url=f"{data.success_url}?session_id={{CHECKOUT_SESSION_ID}}&payment_id={payment_id}&project_id={project_id}",
             cancel_url=data.cancel_url,
+            customer_email=user.get("email"),
             metadata={
                 "payment_id": payment_id,
+                "project_id": project_id,
+                "user_id": data.user_id,
                 "filename": data.filename,
                 "page_count": str(data.page_count),
-                "trades": ",".join(data.selected_trades)
+                "trades": ",".join(data.selected_trades),
+                "donation": "$1 to Tunnel to Towers"
             }
         )
         
-        # Update payment record with session ID
+        # Update payment and project records with session ID
         payments_collection.update_one(
             {"id": payment_id},
             {"$set": {"stripe_session_id": checkout_session.id}}
+        )
+        projects_collection.update_one(
+            {"id": project_id},
+            {"$set": {"stripe_session_id": checkout_session.id, "payment_id": payment_id}}
         )
         
         return {
             "session_id": checkout_session.id,
             "session_url": checkout_session.url,
-            "payment_id": payment_id
+            "payment_id": payment_id,
+            "project_id": project_id
         }
         
     except stripe.error.StripeError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
