@@ -3,26 +3,31 @@ import pdfplumber
 import pandas as pd
 from pathlib import Path
 
-def parse_plan(file_path):
-    """Extracts text and basic structure from a project plan PDF."""
-    print(f"Reading file: {file_path}")
+def parse_txt(file_path):
+    """Extracts data from a plain text file."""
     data = []
-    
+    with open(file_path, 'r') as f:
+        for i, line in enumerate(f):
+            clean_line = line.strip()
+            if clean_line:
+                data.append({"source": "txt", "index": i + 1, "content": clean_line})
+    return data
+
+def parse_pdf(file_path):
+    """Extracts data from a PDF file."""
+    data = []
     with pdfplumber.open(file_path) as pdf:
         for i, page in enumerate(pdf.pages):
             text = page.extract_text()
-            # Basic extraction logic: capturing lines as individual records
             if text:
                 for line in text.split('\n'):
-                    data.append({"page": i + 1, "content": line})
-    
-    df = pd.DataFrame(data)
-    return df
+                    data.append({"source": "pdf", "index": i + 1, "content": line})
+    return data
 
 def main():
     parser = argparse.ArgumentParser(description="MyPlanReader10: Automated Plan Parser")
-    parser.add_argument("--file", required=True, help="Path to the project plan PDF")
-    parser.add_argument("--export", choices=['csv', 'json'], default='csv', help="Format to export results")
+    parser.add_argument("--file", required=True, help="Path to the project plan (PDF or TXT)")
+    parser.add_argument("--export", choices=['csv', 'json'], default='csv', help="Export format")
     
     args = parser.parse_args()
     file_path = Path(args.file)
@@ -31,12 +36,19 @@ def main():
         print(f"Error: File {args.file} not found.")
         return
 
-    # Parse and Display
-    results_df = parse_plan(file_path)
+    # Determine parser based on extension
+    if file_path.suffix.lower() == '.pdf':
+        data = parse_pdf(file_path)
+    elif file_path.suffix.lower() == '.txt':
+        data = parse_txt(file_path)
+    else:
+        print("Unsupported file format. Please use .pdf or .txt")
+        return
+
+    results_df = pd.DataFrame(data)
     print("\nExtraction Preview:")
     print(results_df.head())
 
-    # Export
     output_name = f"extracted_data.{args.export}"
     if args.export == 'csv':
         results_df.to_csv(output_name, index=False)
