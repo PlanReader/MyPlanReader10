@@ -81,7 +81,7 @@ async def health_check():
     return {"status": "healthy", "message": "Task Manager API is running"}
 
 @app.get("/api/tasks", response_model=List[Task])
-async def get_tasks(status: Optional[str] = None, priority: Optional[str] = None, category: Optional[str] = None):
+async def get_tasks(status: Optional[str] = None, priority: Optional[str] = None, category: Optional[str] = None, trade: Optional[str] = None):
     """Get all tasks with optional filtering"""
     query = {}
     if status:
@@ -90,6 +90,8 @@ async def get_tasks(status: Optional[str] = None, priority: Optional[str] = None
         query["priority"] = priority
     if category:
         query["category"] = category
+    if trade:
+        query["trade"] = trade
     
     tasks = []
     for task in tasks_collection.find(query).sort("created_at", -1):
