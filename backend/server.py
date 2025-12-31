@@ -32,6 +32,147 @@ MONGO_URL = os.environ.get('MONGO_URL', 'mongodb://localhost:27017/taskmanager')
 client = MongoClient(MONGO_URL)
 db = client.taskmanager
 tasks_collection = db.tasks
+materials_collection = db.materials
+
+# ============================================
+# MATERIAL CALCULATION FORMULAS (All rounded UP)
+# ============================================
+
+def calculate_drywall_materials(length_ft: float, height_ft: float = 8.0) -> Dict:
+    """Calculate drywall materials - all values rounded UP to whole numbers"""
+    sq_ft = length_ft * height_ft
+    
+    # Drywall sheets (4x8 = 32 sq ft per sheet)
+    sheets = math.ceil(sq_ft / 32)
+    
+    # Studs: one every 16 inches (1.33 ft) plus 1 for start
+    stud_count = math.ceil(length_ft / 1.33) + 1
+    
+    # Screws: approximately 32 per sheet
+    screws = math.ceil(sheets * 32)
+    
+    # Joint compound (1 gallon per 100 sq ft)
+    joint_compound_gal = math.ceil(sq_ft / 100)
+    
+    # Tape (1 roll per 500 sq ft)
+    tape_rolls = math.ceil(sq_ft / 500)
+    
+    return {
+        "drywall_sheets": sheets,
+        "studs": stud_count,
+        "screws": screws,
+        "joint_compound_gallons": joint_compound_gal,
+        "tape_rolls": max(1, tape_rolls)
+    }
+
+def calculate_hvac_materials(sq_ft_coverage: float, num_vents: int = 1) -> Dict:
+    """Calculate HVAC materials - all values rounded UP to whole numbers"""
+    # Ductwork: 1 linear ft per 10 sq ft of coverage
+    ductwork_ft = math.ceil(sq_ft_coverage / 10)
+    
+    # Duct tape rolls (1 per 50 ft of ductwork)
+    duct_tape = math.ceil(ductwork_ft / 50)
+    
+    # Hangers (1 per 4 ft of ductwork)
+    hangers = math.ceil(ductwork_ft / 4)
+    
+    # Registers/vents
+    registers = math.ceil(num_vents)
+    
+    # Flex duct connectors
+    connectors = math.ceil(num_vents * 2)
+    
+    return {
+        "ductwork_linear_ft": ductwork_ft,
+        "duct_tape_rolls": max(1, duct_tape),
+        "hangers": hangers,
+        "registers": registers,
+        "flex_connectors": connectors
+    }
+
+def calculate_painting_materials(sq_ft: float, coats: int = 2) -> Dict:
+    """Calculate painting materials - all values rounded UP to whole numbers"""
+    total_coverage = sq_ft * coats
+    
+    # Paint: 1 gallon covers ~350 sq ft
+    paint_gallons = math.ceil(total_coverage / 350)
+    
+    # Primer: 1 gallon covers ~400 sq ft (single coat)
+    primer_gallons = math.ceil(sq_ft / 400)
+    
+    # Rollers (1 per 500 sq ft)
+    rollers = math.ceil(sq_ft / 500)
+    
+    # Brushes (1 per 200 sq ft for edges)
+    brushes = math.ceil(sq_ft / 200)
+    
+    # Drop cloths (1 per 100 sq ft of floor)
+    drop_cloths = math.ceil(sq_ft / 100)
+    
+    # Painter's tape rolls (1 per 60 linear ft, estimate 1 roll per 50 sq ft)
+    tape_rolls = math.ceil(sq_ft / 50)
+    
+    return {
+        "paint_gallons": paint_gallons,
+        "primer_gallons": primer_gallons,
+        "rollers": max(1, rollers),
+        "brushes": max(1, brushes),
+        "drop_cloths": max(1, drop_cloths),
+        "painters_tape_rolls": max(1, tape_rolls)
+    }
+
+def calculate_electrical_materials(num_outlets: int, num_switches: int, wire_runs_ft: float) -> Dict:
+    """Calculate electrical materials - all values rounded UP to whole numbers"""
+    # Wire: add 20% for waste
+    wire_ft = math.ceil(wire_runs_ft * 1.2)
+    
+    # Boxes (1 per outlet + 1 per switch)
+    boxes = math.ceil(num_outlets + num_switches)
+    
+    # Wire nuts (10 per box)
+    wire_nuts = math.ceil(boxes * 10)
+    
+    # Staples (1 per 2 ft of wire)
+    staples = math.ceil(wire_ft / 2)
+    
+    return {
+        "wire_feet": wire_ft,
+        "outlet_boxes": math.ceil(num_outlets),
+        "switch_boxes": math.ceil(num_switches),
+        "wire_nuts": wire_nuts,
+        "staples": staples,
+        "outlets": math.ceil(num_outlets),
+        "switches": math.ceil(num_switches)
+    }
+
+def calculate_plumbing_materials(pipe_runs_ft: float, num_fixtures: int) -> Dict:
+    """Calculate plumbing materials - all values rounded UP to whole numbers"""
+    # Pipe: add 15% for fittings and waste
+    pipe_ft = math.ceil(pipe_runs_ft * 1.15)
+    
+    # Fittings (estimate 3 per fixture + 1 per 10 ft of pipe)
+    fittings = math.ceil((num_fixtures * 3) + (pipe_ft / 10))
+    
+    # Hangers (1 per 4 ft)
+    hangers = math.ceil(pipe_ft / 4)
+    
+    # Solder/glue (1 unit per 20 fittings)
+    adhesive = math.ceil(fittings / 20)
+    
+    return {
+        "pipe_feet": pipe_ft,
+        "fittings": fittings,
+        "hangers": hangers,
+        "adhesive_units": max(1, adhesive),
+        "fixtures": math.ceil(num_fixtures)
+    }
+
+def calculate_general_materials(description: str) -> Dict:
+    """Generic material placeholder"""
+    return {
+        "note": "Custom materials - add manually",
+        "items": 0
+    }
 
 # Pydantic models
 class TaskCreate(BaseModel):
