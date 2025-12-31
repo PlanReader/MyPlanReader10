@@ -9,6 +9,7 @@ import uuid
 import math
 import csv
 import io
+import stripe
 from pymongo import MongoClient
 from dotenv import load_dotenv
 
@@ -16,7 +17,11 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Initialize FastAPI app
-app = FastAPI(title="Notion-Style Task Manager API", version="1.0.0")
+app = FastAPI(title="PlanReader Pro API", version="2.0.0")
+
+# Stripe configuration
+stripe.api_key = os.environ.get('STRIPE_SECRET_KEY', '')
+STRIPE_PUBLISHABLE_KEY = os.environ.get('STRIPE_PUBLISHABLE_KEY', '')
 
 # CORS middleware
 app.add_middleware(
@@ -33,6 +38,7 @@ client = MongoClient(MONGO_URL)
 db = client.taskmanager
 tasks_collection = db.tasks
 materials_collection = db.materials
+payments_collection = db.payments
 
 # ============================================
 # MATERIAL CALCULATION FORMULAS (All rounded UP)
