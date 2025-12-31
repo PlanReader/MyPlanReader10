@@ -23,7 +23,11 @@ import {
   ShoppingCart,
   Download,
   Package,
-  Ruler
+  Ruler,
+  Upload,
+  FileText,
+  DollarSign,
+  Check
 } from 'lucide-react';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -41,56 +45,42 @@ const STATUSES = {
   completed: { label: 'Completed', color: 'text-green-600 bg-green-50', icon: CheckCircle2 }
 };
 
-// Trade configurations with colors and measurement fields
+// Trade configurations
 const TRADES = {
-  'Drywall': { 
-    color: 'text-amber-700 bg-amber-50', 
-    icon: '🧱',
-    measurementFields: [
-      { key: 'length_ft', label: 'Wall Length (ft)', type: 'number', placeholder: '12.5' },
-      { key: 'height_ft', label: 'Wall Height (ft)', type: 'number', placeholder: '8', default: 8 }
-    ]
-  },
-  'HVAC': { 
-    color: 'text-cyan-700 bg-cyan-50', 
-    icon: '❄️',
-    measurementFields: [
-      { key: 'sq_ft_coverage', label: 'Coverage Area (sq ft)', type: 'number', placeholder: '1500' },
-      { key: 'num_vents', label: 'Number of Vents', type: 'number', placeholder: '4', default: 1 }
-    ]
-  },
-  'Painting': { 
-    color: 'text-pink-700 bg-pink-50', 
-    icon: '🎨',
-    measurementFields: [
-      { key: 'sq_ft', label: 'Surface Area (sq ft)', type: 'number', placeholder: '850' },
-      { key: 'coats', label: 'Number of Coats', type: 'number', placeholder: '2', default: 2 }
-    ]
-  },
-  'Electrical': { 
-    color: 'text-yellow-700 bg-yellow-50', 
-    icon: '⚡',
-    measurementFields: [
-      { key: 'num_outlets', label: 'Number of Outlets', type: 'number', placeholder: '10' },
-      { key: 'num_switches', label: 'Number of Switches', type: 'number', placeholder: '5' },
-      { key: 'wire_runs_ft', label: 'Wire Runs (ft)', type: 'number', placeholder: '200' }
-    ]
-  },
-  'Plumbing': { 
-    color: 'text-blue-700 bg-blue-50', 
-    icon: '🔧',
-    measurementFields: [
-      { key: 'pipe_runs_ft', label: 'Pipe Runs (ft)', type: 'number', placeholder: '100' },
-      { key: 'num_fixtures', label: 'Number of Fixtures', type: 'number', placeholder: '3' }
-    ]
-  },
+  'Drywall': { color: 'text-amber-700 bg-amber-50', icon: '🧱', measurementFields: [
+    { key: 'length_ft', label: 'Wall Length (ft)', type: 'number', placeholder: '12.5' },
+    { key: 'height_ft', label: 'Wall Height (ft)', type: 'number', placeholder: '8', default: 8 }
+  ]},
+  'Painting': { color: 'text-pink-700 bg-pink-50', icon: '🎨', measurementFields: [
+    { key: 'sq_ft', label: 'Surface Area (sq ft)', type: 'number', placeholder: '850' },
+    { key: 'coats', label: 'Number of Coats', type: 'number', placeholder: '2', default: 2 }
+  ]},
+  'Stucco': { color: 'text-stone-700 bg-stone-50', icon: '🏗️', measurementFields: [
+    { key: 'sq_ft', label: 'Surface Area (sq ft)', type: 'number', placeholder: '500' }
+  ]},
+  'Exterior Paint': { color: 'text-teal-700 bg-teal-50', icon: '🏠', measurementFields: [
+    { key: 'sq_ft', label: 'Surface Area (sq ft)', type: 'number', placeholder: '800' },
+    { key: 'coats', label: 'Number of Coats', type: 'number', placeholder: '2', default: 2 }
+  ]},
+  'HVAC': { color: 'text-cyan-700 bg-cyan-50', icon: '❄️', measurementFields: [
+    { key: 'sq_ft_coverage', label: 'Coverage Area (sq ft)', type: 'number', placeholder: '1500' },
+    { key: 'num_vents', label: 'Number of Vents', type: 'number', placeholder: '4', default: 1 }
+  ]},
+  'Electrical': { color: 'text-yellow-700 bg-yellow-50', icon: '⚡', measurementFields: [
+    { key: 'num_outlets', label: 'Number of Outlets', type: 'number', placeholder: '10' },
+    { key: 'num_switches', label: 'Number of Switches', type: 'number', placeholder: '5' },
+    { key: 'wire_runs_ft', label: 'Wire Runs (ft)', type: 'number', placeholder: '200' }
+  ]},
+  'Plumbing': { color: 'text-blue-700 bg-blue-50', icon: '🔧', measurementFields: [
+    { key: 'pipe_runs_ft', label: 'Pipe Runs (ft)', type: 'number', placeholder: '100' },
+    { key: 'num_fixtures', label: 'Number of Fixtures', type: 'number', placeholder: '3' }
+  ]},
   'General': { color: 'text-gray-700 bg-gray-50', icon: '🔨', measurementFields: [] }
 };
 
 const DEFAULT_CATEGORIES = ['General', 'Work', 'Personal', 'Shopping', 'Health', 'Finance'];
-const DEFAULT_TRADES = ['Drywall', 'HVAC', 'Painting', 'Electrical', 'Plumbing', 'General'];
+const DEFAULT_TRADES = ['Drywall', 'Painting', 'Stucco', 'Exterior Paint', 'HVAC', 'Electrical', 'Plumbing', 'General'];
 
-// Format material item names
 const formatMaterialName = (name) => {
   return name.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
 };
@@ -106,7 +96,7 @@ function App() {
   const [filterTrade, setFilterTrade] = useState('all');
   const [showModal, setShowModal] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
-  const [activeView, setActiveView] = useState('shopping'); // Default to Shopping List
+  const [activeView, setActiveView] = useState('upload'); // Default to Upload portal
   const [categories, setCategories] = useState(DEFAULT_CATEGORIES);
   const [trades, setTrades] = useState(DEFAULT_TRADES);
   const [showAddTradeModal, setShowAddTradeModal] = useState(false);
@@ -124,7 +114,7 @@ function App() {
     measurements: {}
   });
 
-  // Fetch tasks
+  // Fetch functions
   const fetchTasks = useCallback(async () => {
     try {
       const response = await axios.get(`${BACKEND_URL}/api/tasks`);
@@ -134,7 +124,6 @@ function App() {
     }
   }, []);
 
-  // Fetch dashboard data
   const fetchDashboard = useCallback(async () => {
     try {
       const response = await axios.get(`${BACKEND_URL}/api/dashboard`);
@@ -144,7 +133,6 @@ function App() {
     }
   }, []);
 
-  // Fetch shopping list
   const fetchShoppingList = useCallback(async () => {
     try {
       const response = await axios.get(`${BACKEND_URL}/api/shopping-list`);
@@ -154,7 +142,6 @@ function App() {
     }
   }, []);
 
-  // Fetch categories
   const fetchCategories = useCallback(async () => {
     try {
       const response = await axios.get(`${BACKEND_URL}/api/categories`);
@@ -165,18 +152,15 @@ function App() {
     }
   }, []);
 
-  // Fetch trades
   const fetchTrades = useCallback(async () => {
     try {
       const response = await axios.get(`${BACKEND_URL}/api/trades`);
       setTrades(response.data.trades || DEFAULT_TRADES);
     } catch (error) {
-      console.error('Error fetching trades:', error);
       setTrades(DEFAULT_TRADES);
     }
   }, []);
 
-  // Initial load
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
@@ -186,12 +170,10 @@ function App() {
     loadData();
   }, [fetchTasks, fetchDashboard, fetchCategories, fetchTrades, fetchShoppingList]);
 
-  // Handle form submit
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
       const submitData = { ...formData };
-      // Only include measurements if there are values
       if (Object.keys(submitData.measurements).length === 0) {
         delete submitData.measurements;
       }
@@ -211,7 +193,6 @@ function App() {
     }
   };
 
-  // Handle task deletion
   const handleDelete = async (taskId) => {
     if (!window.confirm('Are you sure you want to delete this task?')) return;
     try {
@@ -224,7 +205,6 @@ function App() {
     }
   };
 
-  // Handle task completion toggle
   const handleToggleComplete = async (task) => {
     try {
       await axios.patch(`${BACKEND_URL}/api/tasks/${task.id}/complete`);
@@ -235,73 +215,58 @@ function App() {
     }
   };
 
-  // Export shopping list
   const handleExportShoppingList = () => {
     window.open(`${BACKEND_URL}/api/export/shopping-list`, '_blank');
   };
 
-  // Export tasks
   const handleExportTasks = () => {
     window.open(`${BACKEND_URL}/api/export/tasks`, '_blank');
   };
 
-  // Add new trade
   const handleAddTrade = () => {
     if (newTradeName.trim() && !trades.includes(newTradeName.trim())) {
       const tradeName = newTradeName.trim();
       setTrades([...trades, tradeName]);
-      // Add to TRADES config dynamically
       if (!TRADES[tradeName]) {
-        TRADES[tradeName] = { 
-          color: 'text-indigo-700 bg-indigo-50', 
-          icon: '🔧',
-          measurementFields: []
-        };
+        TRADES[tradeName] = { color: 'text-indigo-700 bg-indigo-50', icon: '🔧', measurementFields: [] };
       }
       setNewTradeName('');
       setShowAddTradeModal(false);
     }
   };
 
-  // Open modal for new task
+  const handleBlueprintProcessed = async () => {
+    await fetchTasks();
+    await fetchDashboard();
+    await fetchShoppingList();
+    setActiveView('shopping');
+  };
+
   const openNewTaskModal = () => {
     setEditingTask(null);
     setFormData({
-      title: '',
-      description: '',
-      status: 'todo',
-      priority: 'medium',
-      category: 'General',
-      trade: '',
-      due_date: '',
-      measurements: {}
+      title: '', description: '', status: 'todo', priority: 'medium',
+      category: 'General', trade: '', due_date: '', measurements: {}
     });
     setShowModal(true);
   };
 
-  // Open modal for editing
   const openEditModal = (task) => {
     setEditingTask(task);
     setFormData({
-      title: task.title,
-      description: task.description || '',
-      status: task.status,
-      priority: task.priority,
-      category: task.category || 'General',
-      trade: task.trade || '',
-      due_date: task.due_date || '',
+      title: task.title, description: task.description || '', status: task.status,
+      priority: task.priority, category: task.category || 'General',
+      trade: task.trade || '', due_date: task.due_date || '',
       measurements: task.measurements || {}
     });
     setShowModal(true);
   };
 
-  // Close modal
   const closeModal = () => {
     setShowModal(false);
     setEditingTask(null);
   };
 
-  // Filter tasks
   const filteredTasks = tasks.filter(task => {
     const matchesSearch = task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           (task.description && task.description.toLowerCase().includes(searchQuery.toLowerCase()));
@@ -311,13 +276,11 @@ function App() {
     return matchesSearch && matchesStatus && matchesPriority && matchesTrade;
   });
 
-  // Check if task is overdue
   const isOverdue = (task) => {
     if (!task.due_date || task.status === 'completed') return false;
     return new Date(task.due_date) < new Date(new Date().toDateString());
   };
 
-  // Format date
   const formatDate = (dateString) => {
     if (!dateString) return '';
     const date = new Date(dateString);
@@ -326,10 +289,10 @@ function App() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white" data-testid="loading-screen">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 to-slate-800" data-testid="loading-screen">
         <div className="flex flex-col items-center gap-4">
-          <Loader2 className="w-8 h-8 text-gray-400 animate-spin" />
-          <p className="text-gray-500">Loading your tasks...</p>
+          <Loader2 className="w-10 h-10 text-blue-500 animate-spin" />
+          <p className="text-slate-400 text-lg">Loading PlanReader Pro...</p>
         </div>
       </div>
     );
@@ -338,19 +301,40 @@ function App() {
   return (
     <div className="min-h-screen bg-white" data-testid="app-container">
       {/* Sidebar */}
-      <aside className="fixed left-0 top-0 h-full w-60 bg-[#f7f6f3] border-r border-[#e3e2de] p-4 overflow-y-auto" data-testid="sidebar">
+      <aside className="fixed left-0 top-0 h-full w-60 bg-slate-900 border-r border-slate-700 p-4 overflow-y-auto" data-testid="sidebar">
         <div className="mb-8">
-          <h1 className="text-xl font-semibold text-[#37352f] flex items-center gap-2">
-            <CheckSquare className="w-6 h-6 text-blue-600" />
-            TaskFlow
+          <h1 className="text-xl font-bold text-white flex items-center gap-2">
+            <FileText className="w-6 h-6 text-blue-500" />
+            PlanReader Pro
           </h1>
+          <p className="text-xs text-slate-500 mt-1">Blueprint Material Calculator</p>
         </div>
         
         <nav className="space-y-1">
           <button
+            onClick={() => setActiveView('upload')}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
+              activeView === 'upload' ? 'bg-blue-600 text-white font-medium' : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+            }`}
+            data-testid="nav-upload"
+          >
+            <Upload className="w-4 h-4" />
+            Upload Plans
+          </button>
+          <button
+            onClick={() => setActiveView('shopping')}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
+              activeView === 'shopping' ? 'bg-blue-600 text-white font-medium' : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+            }`}
+            data-testid="nav-shopping"
+          >
+            <ShoppingCart className="w-4 h-4" />
+            Shopping List
+          </button>
+          <button
             onClick={() => setActiveView('tasks')}
-            className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
-              activeView === 'tasks' ? 'bg-[#efefef] text-[#37352f] font-medium' : 'text-[#9b9a97] hover:bg-[#efefef]'
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
+              activeView === 'tasks' ? 'bg-blue-600 text-white font-medium' : 'text-slate-400 hover:bg-slate-800 hover:text-white'
             }`}
             data-testid="nav-tasks"
           >
@@ -359,94 +343,57 @@ function App() {
           </button>
           <button
             onClick={() => setActiveView('dashboard')}
-            className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
-              activeView === 'dashboard' ? 'bg-[#efefef] text-[#37352f] font-medium' : 'text-[#9b9a97] hover:bg-[#efefef]'
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
+              activeView === 'dashboard' ? 'bg-blue-600 text-white font-medium' : 'text-slate-400 hover:bg-slate-800 hover:text-white'
             }`}
             data-testid="nav-dashboard"
           >
             <LayoutDashboard className="w-4 h-4" />
             Dashboard
           </button>
-          <button
-            onClick={() => setActiveView('shopping')}
-            className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
-              activeView === 'shopping' ? 'bg-[#efefef] text-[#37352f] font-medium' : 'text-[#9b9a97] hover:bg-[#efefef]'
-            }`}
-            data-testid="nav-shopping"
-          >
-            <ShoppingCart className="w-4 h-4" />
-            Shopping List
-          </button>
         </nav>
 
         {/* Quick Stats */}
         {dashboard && (
-          <div className="mt-8 p-3 bg-white rounded-lg border border-[#e3e2de]" data-testid="quick-stats">
-            <h3 className="text-xs font-medium text-[#9b9a97] uppercase tracking-wider mb-3">Quick Stats</h3>
+          <div className="mt-8 p-3 bg-slate-800 rounded-lg border border-slate-700" data-testid="quick-stats">
+            <h3 className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-3">Project Stats</h3>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-[#9b9a97]">Total</span>
-                <span className="font-medium text-[#37352f]">{dashboard.total_tasks}</span>
+                <span className="text-slate-500">Tasks</span>
+                <span className="font-medium text-white">{dashboard.total_tasks}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-[#9b9a97]">Completed</span>
-                <span className="font-medium text-green-600">{dashboard.status_breakdown.completed}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-[#9b9a97]">Overdue</span>
-                <span className="font-medium text-red-600">{dashboard.overdue_count}</span>
+                <span className="text-slate-500">Completed</span>
+                <span className="font-medium text-green-500">{dashboard.status_breakdown.completed}</span>
               </div>
             </div>
           </div>
         )}
 
-        {/* Trade Filter Quick Access */}
-        <div className="mt-4 p-3 bg-white rounded-lg border border-[#e3e2de]" data-testid="trade-quick-filter">
-          <h3 className="text-xs font-medium text-[#9b9a97] uppercase tracking-wider mb-3 flex items-center gap-1">
-            <Wrench className="w-3 h-3" />
-            Trades
-          </h3>
-          <div className="space-y-1">
-            {trades.slice(0, 6).map(trade => (
-              <button
-                key={trade}
-                onClick={() => { setFilterTrade(trade); setActiveView('tasks'); }}
-                className={`w-full text-left text-xs px-2 py-1.5 rounded transition-colors ${
-                  filterTrade === trade ? 'bg-blue-50 text-blue-700' : 'text-[#9b9a97] hover:bg-[#efefef]'
-                }`}
-                data-testid={`quick-filter-${trade.toLowerCase()}`}
-              >
-                {TRADES[trade]?.icon || '🔨'} {trade}
-              </button>
-            ))}
-            {/* Add Trade Button */}
-            <button
-              onClick={() => setShowAddTradeModal(true)}
-              className="w-full text-left text-xs px-2 py-1.5 rounded transition-colors text-blue-600 hover:bg-blue-50 flex items-center gap-1 mt-2 border-t border-[#e3e2de] pt-2"
-              data-testid="add-trade-sidebar-btn"
-            >
-              <Plus className="w-3 h-3" />
-              Add Trade
-            </button>
-          </div>
-        </div>
-
         {/* Materials Summary */}
         {shoppingList && shoppingList.total_items > 0 && (
-          <div className="mt-4 p-3 bg-green-50 rounded-lg border border-green-200" data-testid="materials-summary">
-            <h3 className="text-xs font-medium text-green-700 uppercase tracking-wider mb-2 flex items-center gap-1">
+          <div className="mt-4 p-3 bg-emerald-900/30 rounded-lg border border-emerald-700/50" data-testid="materials-summary">
+            <h3 className="text-xs font-medium text-emerald-400 uppercase tracking-wider mb-2 flex items-center gap-1">
               <Package className="w-3 h-3" />
-              Materials
+              Materials Ready
             </h3>
-            <p className="text-sm text-green-800 font-medium">{shoppingList.total_items} items</p>
-            <p className="text-xs text-green-600">{shoppingList.tasks_included} tasks with materials</p>
+            <p className="text-lg text-emerald-300 font-bold">{shoppingList.total_items} items</p>
+            <p className="text-xs text-emerald-500">{shoppingList.tasks_included} takeoffs processed</p>
           </div>
         )}
       </aside>
 
       {/* Main Content */}
-      <main className="ml-60 p-8" data-testid="main-content">
-        {activeView === 'tasks' ? (
+      <main className="ml-60 min-h-screen bg-slate-50" data-testid="main-content">
+        {activeView === 'upload' ? (
+          <UploadPortal onProcessed={handleBlueprintProcessed} />
+        ) : activeView === 'shopping' ? (
+          <ShoppingListView 
+            shoppingList={shoppingList} 
+            handleExportShoppingList={handleExportShoppingList}
+            handleExportTasks={handleExportTasks}
+          />
+        ) : activeView === 'tasks' ? (
           <TasksView
             tasks={filteredTasks}
             searchQuery={searchQuery}
@@ -464,12 +411,6 @@ function App() {
             handleToggleComplete={handleToggleComplete}
             isOverdue={isOverdue}
             formatDate={formatDate}
-          />
-        ) : activeView === 'shopping' ? (
-          <ShoppingListView 
-            shoppingList={shoppingList} 
-            handleExportShoppingList={handleExportShoppingList}
-            handleExportTasks={handleExportTasks}
           />
         ) : (
           <DashboardView dashboard={dashboard} formatDate={formatDate} tasks={tasks} />
@@ -492,50 +433,31 @@ function App() {
 
       {/* Add Trade Modal */}
       {showAddTradeModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 modal-backdrop" data-testid="add-trade-modal">
-          <div className="bg-white rounded-lg w-full max-w-sm p-6 modal-content" data-testid="add-trade-content">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg w-full max-w-sm p-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-[#37352f] flex items-center gap-2">
+              <h3 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
                 <Wrench className="w-5 h-5 text-blue-600" />
                 Add New Trade
               </h3>
-              <button 
-                onClick={() => { setShowAddTradeModal(false); setNewTradeName(''); }} 
-                className="p-1 hover:bg-[#efefef] rounded"
-                data-testid="close-add-trade"
-              >
-                <X className="w-5 h-5 text-[#9b9a97]" />
+              <button onClick={() => { setShowAddTradeModal(false); setNewTradeName(''); }} className="p-1 hover:bg-slate-100 rounded">
+                <X className="w-5 h-5 text-slate-400" />
               </button>
             </div>
-            
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-[#37352f] mb-1">Trade Name</label>
-              <input
-                type="text"
-                value={newTradeName}
-                onChange={(e) => setNewTradeName(e.target.value)}
-                className="w-full px-3 py-2 border border-[#e3e2de] rounded-md text-sm"
-                placeholder="e.g., Carpentry, Roofing, Flooring..."
-                autoFocus
-                data-testid="input-new-trade"
-                onKeyPress={(e) => e.key === 'Enter' && handleAddTrade()}
-              />
-            </div>
-            
+            <input
+              type="text"
+              value={newTradeName}
+              onChange={(e) => setNewTradeName(e.target.value)}
+              className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm mb-4"
+              placeholder="e.g., Carpentry, Roofing..."
+              autoFocus
+              onKeyPress={(e) => e.key === 'Enter' && handleAddTrade()}
+            />
             <div className="flex justify-end gap-3">
-              <button
-                onClick={() => { setShowAddTradeModal(false); setNewTradeName(''); }}
-                className="px-4 py-2 text-sm text-[#9b9a97] hover:bg-[#efefef] rounded-md transition-colors"
-                data-testid="cancel-add-trade"
-              >
+              <button onClick={() => { setShowAddTradeModal(false); setNewTradeName(''); }} className="px-4 py-2 text-sm text-slate-500 hover:bg-slate-100 rounded-md">
                 Cancel
               </button>
-              <button
-                onClick={handleAddTrade}
-                disabled={!newTradeName.trim()}
-                className="px-4 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                data-testid="submit-add-trade"
-              >
+              <button onClick={handleAddTrade} disabled={!newTradeName.trim()} className="px-4 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50">
                 Add Trade
               </button>
             </div>
@@ -546,84 +468,346 @@ function App() {
   );
 }
 
-// Shopping List View Component
+// ============================================
+// UPLOAD PORTAL COMPONENT
+// ============================================
+function UploadPortal({ onProcessed }) {
+  const [isDragging, setIsDragging] = useState(false);
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [pageCount, setPageCount] = useState(10);
+  const [selectedTrades, setSelectedTrades] = useState(['Drywall']);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [processingStep, setProcessingStep] = useState('');
+  const [progress, setProgress] = useState(0);
+
+  const BASE_PRICE = 25;
+  const ADDON_PRICE = 10;
+  
+  const addOns = [
+    { id: 'Painting', label: 'Painting', price: ADDON_PRICE },
+    { id: 'Stucco', label: 'Stucco', price: ADDON_PRICE },
+    { id: 'Exterior Paint', label: 'Exterior Paint', price: ADDON_PRICE }
+  ];
+
+  const totalPrice = BASE_PRICE + addOns.filter(a => selectedTrades.includes(a.id)).length * ADDON_PRICE;
+
+  const handleDragOver = (e) => { e.preventDefault(); setIsDragging(true); };
+  const handleDragLeave = (e) => { e.preventDefault(); setIsDragging(false); };
+  
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files[0];
+    if (file && file.type === 'application/pdf') {
+      setSelectedFile(file);
+      // Simulate page count detection
+      setPageCount(Math.min(25, Math.floor(Math.random() * 20) + 5));
+    }
+  };
+
+  const handleFileSelect = (e) => {
+    const file = e.target.files[0];
+    if (file && file.type === 'application/pdf') {
+      setSelectedFile(file);
+      setPageCount(Math.min(25, Math.floor(Math.random() * 20) + 5));
+    }
+  };
+
+  const toggleAddOn = (tradeId) => {
+    if (selectedTrades.includes(tradeId)) {
+      setSelectedTrades(selectedTrades.filter(t => t !== tradeId));
+    } else {
+      setSelectedTrades([...selectedTrades, tradeId]);
+    }
+  };
+
+  const handleProcess = async () => {
+    if (!selectedFile) return;
+    
+    setIsProcessing(true);
+    setProgress(0);
+    
+    // Simulate processing steps
+    const steps = [
+      'Uploading blueprint...',
+      'Parsing divisions...',
+      'Extracting measurements...',
+      'Calculating whole-unit quantities...',
+      'Generating shopping list...'
+    ];
+    
+    for (let i = 0; i < steps.length; i++) {
+      setProcessingStep(steps[i]);
+      setProgress((i + 1) * 20);
+      await new Promise(r => setTimeout(r, 800));
+    }
+    
+    try {
+      await axios.post(`${BACKEND_URL}/api/process-blueprint`, {
+        filename: selectedFile.name,
+        page_count: pageCount,
+        selected_trades: selectedTrades,
+        total_fee: totalPrice
+      });
+      
+      setProgress(100);
+      setProcessingStep('Complete! Redirecting to shopping list...');
+      await new Promise(r => setTimeout(r, 1000));
+      
+      onProcessed();
+    } catch (error) {
+      console.error('Error processing blueprint:', error);
+      setProcessingStep('Error processing file. Please try again.');
+    }
+    
+    setIsProcessing(false);
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-8" data-testid="upload-portal">
+      <div className="max-w-3xl mx-auto">
+        {/* Header */}
+        <div className="text-center mb-10">
+          <h1 className="text-4xl font-bold text-white mb-3">
+            Blueprint Material Calculator
+          </h1>
+          <p className="text-slate-400 text-lg">
+            Upload your plans and get instant, whole-unit material quantities
+          </p>
+        </div>
+
+        {/* Processing Overlay */}
+        {isProcessing && (
+          <div className="fixed inset-0 bg-slate-900/95 flex items-center justify-center z-50" data-testid="processing-overlay">
+            <div className="text-center max-w-md">
+              <Loader2 className="w-16 h-16 text-blue-500 animate-spin mx-auto mb-6" />
+              <p className="text-xl text-white mb-4">{processingStep}</p>
+              <div className="w-full bg-slate-700 rounded-full h-3 mb-2">
+                <div 
+                  className="bg-blue-500 h-3 rounded-full transition-all duration-500"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+              <p className="text-slate-500">{progress}%</p>
+            </div>
+          </div>
+        )}
+
+        {/* Upload Zone */}
+        <div
+          className={`border-2 border-dashed rounded-2xl p-12 text-center transition-all cursor-pointer mb-8 ${
+            isDragging 
+              ? 'border-blue-500 bg-blue-500/10' 
+              : selectedFile 
+                ? 'border-green-500 bg-green-500/10' 
+                : 'border-slate-600 bg-slate-800/50 hover:border-slate-500'
+          }`}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          onClick={() => document.getElementById('file-input').click()}
+          data-testid="upload-zone"
+        >
+          <input
+            id="file-input"
+            type="file"
+            accept=".pdf"
+            className="hidden"
+            onChange={handleFileSelect}
+          />
+          
+          {selectedFile ? (
+            <div className="flex flex-col items-center">
+              <CheckCircle2 className="w-16 h-16 text-green-500 mb-4" />
+              <p className="text-xl font-semibold text-white mb-2">{selectedFile.name}</p>
+              <p className="text-slate-400">{pageCount} pages detected</p>
+              <button 
+                onClick={(e) => { e.stopPropagation(); setSelectedFile(null); }}
+                className="mt-4 text-sm text-slate-500 hover:text-white"
+              >
+                Choose different file
+              </button>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center">
+              <Upload className="w-16 h-16 text-slate-500 mb-4" />
+              <p className="text-xl font-semibold text-white mb-2">
+                Upload PDF Blueprint
+              </p>
+              <p className="text-slate-500 mb-4">
+                Drag & drop or click to select
+              </p>
+              <p className="text-sm text-slate-600">
+                Max 25 pages for single use
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Trade Selection */}
+        <div className="bg-slate-800 rounded-2xl p-6 mb-8" data-testid="trade-selector">
+          <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+            <Wrench className="w-5 h-5 text-blue-500" />
+            Trade Selection
+          </h2>
+          
+          {/* Base Trade */}
+          <div className="flex items-center justify-between p-4 bg-blue-600/20 border border-blue-500/30 rounded-xl mb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-6 h-6 bg-blue-600 rounded flex items-center justify-center">
+                <Check className="w-4 h-4 text-white" />
+              </div>
+              <div>
+                <p className="font-medium text-white">🧱 Drywall</p>
+                <p className="text-sm text-slate-400">Included in base price</p>
+              </div>
+            </div>
+            <span className="text-xl font-bold text-white">${BASE_PRICE}</span>
+          </div>
+          
+          {/* Add-ons */}
+          <p className="text-sm text-slate-500 mb-3">Add more trades:</p>
+          <div className="space-y-3">
+            {addOns.map(addon => (
+              <label
+                key={addon.id}
+                className={`flex items-center justify-between p-4 rounded-xl cursor-pointer transition-all ${
+                  selectedTrades.includes(addon.id)
+                    ? 'bg-slate-700 border border-slate-600'
+                    : 'bg-slate-800/50 border border-slate-700 hover:border-slate-600'
+                }`}
+                data-testid={`addon-${addon.id.toLowerCase().replace(' ', '-')}`}
+              >
+                <div className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    checked={selectedTrades.includes(addon.id)}
+                    onChange={() => toggleAddOn(addon.id)}
+                    className="w-5 h-5 rounded border-slate-600 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span className="text-white">
+                    {TRADES[addon.id]?.icon} {addon.label}
+                  </span>
+                </div>
+                <span className="text-slate-400">+${addon.price}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+
+        {/* Pricing Summary Footer */}
+        <div className="bg-slate-800 rounded-2xl p-6 sticky bottom-4" data-testid="pricing-summary">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <p className="text-slate-400 text-sm">Total Fee</p>
+              <p className="text-3xl font-bold text-white flex items-center gap-1">
+                <DollarSign className="w-8 h-8 text-green-500" />
+                {totalPrice}
+              </p>
+            </div>
+            <div className="text-right text-sm text-slate-500">
+              <p>Base: ${BASE_PRICE}</p>
+              <p>Add-ons: ${totalPrice - BASE_PRICE}</p>
+            </div>
+          </div>
+          
+          <button
+            onClick={handleProcess}
+            disabled={!selectedFile || isProcessing}
+            className="w-full py-4 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-700 disabled:text-slate-500 text-white font-semibold rounded-xl transition-colors flex items-center justify-center gap-2"
+            data-testid="process-btn"
+          >
+            {isProcessing ? (
+              <>
+                <Loader2 className="w-5 h-5 animate-spin" />
+                Processing...
+              </>
+            ) : (
+              <>
+                <FileText className="w-5 h-5" />
+                Process Blueprint & Calculate Materials
+              </>
+            )}
+          </button>
+          
+          <p className="text-center text-xs text-slate-600 mt-3">
+            All material quantities rounded UP to whole numbers
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================
+// SHOPPING LIST VIEW
+// ============================================
 function ShoppingListView({ shoppingList, handleExportShoppingList, handleExportTasks }) {
   if (!shoppingList) {
     return (
-      <div data-testid="shopping-list-view">
-        <h2 className="text-3xl font-bold text-[#37352f] mb-8">Shopping List</h2>
-        <p className="text-[#9b9a97]">Loading shopping list...</p>
+      <div className="p-8" data-testid="shopping-list-view">
+        <h2 className="text-3xl font-bold text-slate-800 mb-8">Shopping List</h2>
+        <p className="text-slate-500">Loading...</p>
       </div>
     );
   }
 
   return (
-    <div data-testid="shopping-list-view">
+    <div className="p-8" data-testid="shopping-list-view">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h2 className="text-3xl font-bold text-[#37352f]">Shopping List</h2>
-          <p className="text-sm text-[#9b9a97] mt-1">All quantities are whole numbers (rounded UP)</p>
+          <h2 className="text-3xl font-bold text-slate-800">Shopping List</h2>
+          <p className="text-sm text-slate-500 mt-1">All quantities are whole numbers (rounded UP)</p>
         </div>
         <div className="flex gap-2">
-          <button
-            onClick={handleExportShoppingList}
-            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
-            data-testid="export-shopping-btn"
-          >
+          <button onClick={handleExportShoppingList} className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700" data-testid="export-shopping-btn">
             <Download className="w-4 h-4" />
             Export CSV
           </button>
-          <button
-            onClick={handleExportTasks}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-            data-testid="export-tasks-btn"
-          >
+          <button onClick={handleExportTasks} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700" data-testid="export-tasks-btn">
             <Download className="w-4 h-4" />
             Export Tasks
           </button>
         </div>
       </div>
 
-      {/* Aggregated Shopping List */}
-      <div className="bg-white border border-[#e3e2de] rounded-lg p-6 mb-8" data-testid="aggregated-list">
-        <h3 className="text-lg font-semibold text-[#37352f] mb-4 flex items-center gap-2">
-          <ShoppingCart className="w-5 h-5 text-green-600" />
+      {/* Aggregated Materials */}
+      <div className="bg-white border border-slate-200 rounded-xl p-6 mb-8 shadow-sm" data-testid="aggregated-list">
+        <h3 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
+          <ShoppingCart className="w-5 h-5 text-emerald-600" />
           Aggregated Materials ({shoppingList.total_items} items)
         </h3>
         
         {Object.keys(shoppingList.shopping_list).length > 0 ? (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
             {Object.entries(shoppingList.shopping_list).map(([item, qty]) => (
-              <div 
-                key={item} 
-                className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
-                data-testid={`material-${item}`}
-              >
-                <span className="text-sm text-[#37352f]">{formatMaterialName(item)}</span>
-                <span className="text-lg font-bold text-green-700">{qty}</span>
+              <div key={item} className="flex items-center justify-between p-4 bg-slate-50 rounded-lg border border-slate-100" data-testid={`material-${item}`}>
+                <span className="text-sm text-slate-700">{formatMaterialName(item)}</span>
+                <span className="text-xl font-bold text-emerald-700">{qty}</span>
               </div>
             ))}
           </div>
         ) : (
-          <p className="text-[#9b9a97] text-center py-8">
-            No materials calculated yet. Add measurements to your tasks to generate a shopping list.
-          </p>
+          <div className="text-center py-12">
+            <Upload className="w-12 h-12 text-slate-300 mx-auto mb-4" />
+            <p className="text-slate-500">No materials calculated yet.</p>
+            <p className="text-sm text-slate-400">Upload a blueprint to generate your shopping list.</p>
+          </div>
         )}
       </div>
 
       {/* Breakdown by Task */}
-      <div className="bg-white border border-[#e3e2de] rounded-lg p-6" data-testid="breakdown-by-task">
-        <h3 className="text-lg font-semibold text-[#37352f] mb-4 flex items-center gap-2">
-          <Package className="w-5 h-5 text-blue-600" />
-          Materials by Task
-        </h3>
-        
-        {shoppingList.breakdown_by_task && shoppingList.breakdown_by_task.length > 0 ? (
+      {shoppingList.breakdown_by_task && shoppingList.breakdown_by_task.length > 0 && (
+        <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm" data-testid="breakdown-by-task">
+          <h3 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
+            <Package className="w-5 h-5 text-blue-600" />
+            Materials by Takeoff
+          </h3>
           <div className="space-y-4">
             {shoppingList.breakdown_by_task.map((task, idx) => (
-              <div key={idx} className="border border-[#e3e2de] rounded-lg p-4">
+              <div key={idx} className="border border-slate-200 rounded-lg p-4">
                 <div className="flex items-center gap-2 mb-3">
-                  <h4 className="font-medium text-[#37352f]">{task.task_title}</h4>
+                  <h4 className="font-medium text-slate-800">{task.task_title}</h4>
                   {task.trade && TRADES[task.trade] && (
                     <span className={`text-xs px-2 py-0.5 rounded ${TRADES[task.trade].color}`}>
                       {TRADES[task.trade].icon} {task.trade}
@@ -634,8 +818,8 @@ function ShoppingListView({ shoppingList, handleExportShoppingList, handleExport
                   {Object.entries(task.materials).map(([item, qty]) => (
                     typeof qty === 'number' && (
                       <div key={item} className="text-sm">
-                        <span className="text-[#9b9a97]">{formatMaterialName(item)}:</span>{' '}
-                        <span className="font-medium text-[#37352f]">{qty}</span>
+                        <span className="text-slate-500">{formatMaterialName(item)}:</span>{' '}
+                        <span className="font-medium text-slate-800">{qty}</span>
                       </div>
                     )
                   ))}
@@ -643,67 +827,39 @@ function ShoppingListView({ shoppingList, handleExportShoppingList, handleExport
               </div>
             ))}
           </div>
-        ) : (
-          <p className="text-[#9b9a97] text-center py-8">
-            No tasks with materials yet.
-          </p>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
 
-// Tasks View Component
-function TasksView({
-  tasks,
-  searchQuery,
-  setSearchQuery,
-  filterStatus,
-  setFilterStatus,
-  filterPriority,
-  setFilterPriority,
-  filterTrade,
-  setFilterTrade,
-  trades,
-  openNewTaskModal,
-  openEditModal,
-  handleDelete,
-  handleToggleComplete,
-  isOverdue,
-  formatDate
-}) {
+// ============================================
+// REMAINING COMPONENTS (Tasks, Dashboard, etc.)
+// ============================================
+function TasksView({ tasks, searchQuery, setSearchQuery, filterStatus, setFilterStatus, filterPriority, setFilterPriority, filterTrade, setFilterTrade, trades, openNewTaskModal, openEditModal, handleDelete, handleToggleComplete, isOverdue, formatDate }) {
   const tasksByStatus = {
     todo: tasks.filter(t => t.status === 'todo'),
     in_progress: tasks.filter(t => t.status === 'in_progress'),
     completed: tasks.filter(t => t.status === 'completed')
   };
-
   const hasActiveTradeFilter = filterTrade !== 'all';
 
   return (
-    <div data-testid="tasks-view">
+    <div className="p-8" data-testid="tasks-view">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h2 className="text-3xl font-bold text-[#37352f]">Tasks</h2>
+          <h2 className="text-3xl font-bold text-slate-800">Tasks</h2>
           {hasActiveTradeFilter && (
             <p className="text-sm text-blue-600 mt-1 flex items-center gap-1">
               <Wrench className="w-4 h-4" />
-              Filtered by Trade: <span className="font-medium">{filterTrade}</span>
-              <button 
-                onClick={() => setFilterTrade('all')}
-                className="ml-2 text-gray-400 hover:text-gray-600"
-                data-testid="clear-trade-filter"
-              >
+              Filtered by: {filterTrade}
+              <button onClick={() => setFilterTrade('all')} className="ml-2 text-slate-400 hover:text-slate-600">
                 <X className="w-4 h-4" />
               </button>
             </p>
           )}
         </div>
-        <button
-          onClick={openNewTaskModal}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-          data-testid="new-task-btn"
-        >
+        <button onClick={openNewTaskModal} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700" data-testid="new-task-btn">
           <Plus className="w-4 h-4" />
           New Task
         </button>
@@ -711,86 +867,43 @@ function TasksView({
 
       <div className="flex items-center gap-4 mb-6 flex-wrap">
         <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[#9b9a97]" />
-          <input
-            type="text"
-            placeholder="Search tasks..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-[#e3e2de] rounded-md text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-            data-testid="search-input"
-          />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <input type="text" placeholder="Search tasks..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg text-sm" data-testid="search-input" />
         </div>
-        
-        <div className="flex items-center gap-2">
-          <select
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-            className="px-3 py-2 border border-[#e3e2de] rounded-md text-sm bg-white"
-            data-testid="filter-status"
-          >
-            <option value="all">All Status</option>
-            <option value="todo">To Do</option>
-            <option value="in_progress">In Progress</option>
-            <option value="completed">Completed</option>
-          </select>
-          
-          <select
-            value={filterPriority}
-            onChange={(e) => setFilterPriority(e.target.value)}
-            className="px-3 py-2 border border-[#e3e2de] rounded-md text-sm bg-white"
-            data-testid="filter-priority"
-          >
-            <option value="all">All Priorities</option>
-            <option value="high">High</option>
-            <option value="medium">Medium</option>
-            <option value="low">Low</option>
-          </select>
-
-          <select
-            value={filterTrade}
-            onChange={(e) => setFilterTrade(e.target.value)}
-            className={`px-3 py-2 border rounded-md text-sm bg-white ${
-              hasActiveTradeFilter ? 'border-blue-500 ring-1 ring-blue-500' : 'border-[#e3e2de]'
-            }`}
-            data-testid="filter-trade"
-          >
-            <option value="all">All Trades</option>
-            {trades.map(trade => (
-              <option key={trade} value={trade}>{TRADES[trade]?.icon || '🔨'} {trade}</option>
-            ))}
-          </select>
-        </div>
+        <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white" data-testid="filter-status">
+          <option value="all">All Status</option>
+          <option value="todo">To Do</option>
+          <option value="in_progress">In Progress</option>
+          <option value="completed">Completed</option>
+        </select>
+        <select value={filterPriority} onChange={(e) => setFilterPriority(e.target.value)} className="px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white" data-testid="filter-priority">
+          <option value="all">All Priorities</option>
+          <option value="high">High</option>
+          <option value="medium">Medium</option>
+          <option value="low">Low</option>
+        </select>
+        <select value={filterTrade} onChange={(e) => setFilterTrade(e.target.value)} className={`px-3 py-2 border rounded-lg text-sm bg-white ${hasActiveTradeFilter ? 'border-blue-500 ring-1 ring-blue-500' : 'border-slate-300'}`} data-testid="filter-trade">
+          <option value="all">All Trades</option>
+          {trades.map(trade => (<option key={trade} value={trade}>{TRADES[trade]?.icon || '🔨'} {trade}</option>))}
+        </select>
       </div>
 
       <div className="grid grid-cols-3 gap-6" data-testid="task-columns">
         {Object.entries(STATUSES).map(([status, config]) => {
           const StatusIcon = config.icon;
           const statusTasks = tasksByStatus[status];
-          
           return (
-            <div key={status} className="bg-[#f7f6f3] rounded-lg p-4" data-testid={`column-${status}`}>
+            <div key={status} className="bg-slate-100 rounded-xl p-4" data-testid={`column-${status}`}>
               <div className="flex items-center gap-2 mb-4">
-                <StatusIcon className={`w-4 h-4 ${status === 'todo' ? 'text-gray-500' : status === 'in_progress' ? 'text-blue-500' : 'text-green-500'}`} />
-                <h3 className="font-medium text-[#37352f]">{config.label}</h3>
-                <span className="text-xs text-[#9b9a97] bg-white px-2 py-0.5 rounded">{statusTasks.length}</span>
+                <StatusIcon className={`w-4 h-4 ${status === 'todo' ? 'text-slate-500' : status === 'in_progress' ? 'text-blue-500' : 'text-green-500'}`} />
+                <h3 className="font-medium text-slate-800">{config.label}</h3>
+                <span className="text-xs text-slate-500 bg-white px-2 py-0.5 rounded">{statusTasks.length}</span>
               </div>
-              
               <div className="space-y-2">
                 {statusTasks.map(task => (
-                  <TaskCard
-                    key={task.id}
-                    task={task}
-                    openEditModal={openEditModal}
-                    handleDelete={handleDelete}
-                    handleToggleComplete={handleToggleComplete}
-                    isOverdue={isOverdue}
-                    formatDate={formatDate}
-                  />
+                  <TaskCard key={task.id} task={task} openEditModal={openEditModal} handleDelete={handleDelete} handleToggleComplete={handleToggleComplete} isOverdue={isOverdue} formatDate={formatDate} />
                 ))}
-                {statusTasks.length === 0 && (
-                  <p className="text-sm text-[#9b9a97] text-center py-8">No tasks</p>
-                )}
+                {statusTasks.length === 0 && <p className="text-sm text-slate-400 text-center py-8">No tasks</p>}
               </div>
             </div>
           );
@@ -800,7 +913,6 @@ function TasksView({
   );
 }
 
-// Task Card Component
 function TaskCard({ task, openEditModal, handleDelete, handleToggleComplete, isOverdue, formatDate }) {
   const priorityConfig = PRIORITIES[task.priority];
   const tradeConfig = task.trade ? TRADES[task.trade] || TRADES['General'] : null;
@@ -808,204 +920,65 @@ function TaskCard({ task, openEditModal, handleDelete, handleToggleComplete, isO
   const hasMaterials = task.materials && Object.keys(task.materials).length > 0;
 
   return (
-    <div
-      className="bg-white p-3 rounded-lg border border-[#e3e2de] task-card cursor-pointer group"
-      data-testid={`task-card-${task.id}`}
-    >
+    <div className="bg-white p-3 rounded-lg border border-slate-200 hover:border-slate-300 cursor-pointer group" data-testid={`task-card-${task.id}`}>
       <div className="flex items-start gap-3">
-        <button
-          onClick={(e) => { e.stopPropagation(); handleToggleComplete(task); }}
-          className="mt-0.5 flex-shrink-0"
-          data-testid={`toggle-complete-${task.id}`}
-        >
-          {task.status === 'completed' ? (
-            <CheckSquare className="w-5 h-5 text-blue-600" />
-          ) : (
-            <Square className="w-5 h-5 text-[#9b9a97] hover:text-blue-600 transition-colors" />
-          )}
+        <button onClick={(e) => { e.stopPropagation(); handleToggleComplete(task); }} className="mt-0.5 flex-shrink-0" data-testid={`toggle-complete-${task.id}`}>
+          {task.status === 'completed' ? <CheckSquare className="w-5 h-5 text-blue-600" /> : <Square className="w-5 h-5 text-slate-400 hover:text-blue-600" />}
         </button>
-        
         <div className="flex-1 min-w-0">
-          <h4 className={`font-medium text-sm ${task.status === 'completed' ? 'line-through text-[#9b9a97]' : 'text-[#37352f]'}`}>
-            {task.title}
-          </h4>
-          
-          {task.description && (
-            <p className="text-xs text-[#9b9a97] mt-1 line-clamp-2">{task.description}</p>
-          )}
-          
+          <h4 className={`font-medium text-sm ${task.status === 'completed' ? 'line-through text-slate-400' : 'text-slate-800'}`}>{task.title}</h4>
+          {task.description && <p className="text-xs text-slate-500 mt-1 line-clamp-2">{task.description}</p>}
           <div className="flex items-center gap-2 mt-2 flex-wrap">
-            <span className={`text-xs px-2 py-0.5 rounded ${priorityConfig.color}`} data-testid={`priority-${task.id}`}>
-              {priorityConfig.icon} {priorityConfig.label}
-            </span>
-            
-            {task.trade && tradeConfig && (
-              <span className={`text-xs px-2 py-0.5 rounded flex items-center gap-1 ${tradeConfig.color}`} data-testid={`trade-${task.id}`}>
-                <Wrench className="w-3 h-3" />
-                {tradeConfig.icon} {task.trade}
-              </span>
-            )}
-            
-            {hasMaterials && (
-              <span className="text-xs px-2 py-0.5 rounded bg-green-50 text-green-700 flex items-center gap-1" data-testid={`materials-badge-${task.id}`}>
-                <Package className="w-3 h-3" />
-                Materials
-              </span>
-            )}
-            
-            {task.category && (
-              <span className="text-xs px-2 py-0.5 rounded bg-purple-50 text-purple-600" data-testid={`category-${task.id}`}>
-                <Tag className="w-3 h-3 inline mr-1" />
-                {task.category}
-              </span>
-            )}
-            
-            {task.due_date && (
-              <span className={`text-xs px-2 py-0.5 rounded flex items-center gap-1 ${
-                overdue ? 'bg-red-50 text-red-600' : 'bg-gray-100 text-gray-600'
-              }`} data-testid={`due-date-${task.id}`}>
-                {overdue ? <AlertCircle className="w-3 h-3" /> : <Calendar className="w-3 h-3" />}
-                {formatDate(task.due_date)}
-              </span>
-            )}
+            <span className={`text-xs px-2 py-0.5 rounded ${priorityConfig.color}`}>{priorityConfig.icon} {priorityConfig.label}</span>
+            {task.trade && tradeConfig && <span className={`text-xs px-2 py-0.5 rounded ${tradeConfig.color}`}>{tradeConfig.icon} {task.trade}</span>}
+            {hasMaterials && <span className="text-xs px-2 py-0.5 rounded bg-emerald-50 text-emerald-700"><Package className="w-3 h-3 inline mr-1" />Materials</span>}
+            {task.due_date && <span className={`text-xs px-2 py-0.5 rounded ${overdue ? 'bg-red-50 text-red-600' : 'bg-slate-100 text-slate-600'}`}>{overdue ? <AlertCircle className="w-3 h-3 inline mr-1" /> : <Calendar className="w-3 h-3 inline mr-1" />}{formatDate(task.due_date)}</span>}
           </div>
         </div>
-        
-        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          <button
-            onClick={(e) => { e.stopPropagation(); openEditModal(task); }}
-            className="p-1 hover:bg-[#efefef] rounded"
-            data-testid={`edit-task-${task.id}`}
-          >
-            <Edit3 className="w-4 h-4 text-[#9b9a97]" />
-          </button>
-          <button
-            onClick={(e) => { e.stopPropagation(); handleDelete(task.id); }}
-            className="p-1 hover:bg-red-50 rounded"
-            data-testid={`delete-task-${task.id}`}
-          >
-            <Trash2 className="w-4 h-4 text-red-500" />
-          </button>
+        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100">
+          <button onClick={(e) => { e.stopPropagation(); openEditModal(task); }} className="p-1 hover:bg-slate-100 rounded" data-testid={`edit-task-${task.id}`}><Edit3 className="w-4 h-4 text-slate-400" /></button>
+          <button onClick={(e) => { e.stopPropagation(); handleDelete(task.id); }} className="p-1 hover:bg-red-50 rounded" data-testid={`delete-task-${task.id}`}><Trash2 className="w-4 h-4 text-red-500" /></button>
         </div>
       </div>
     </div>
   );
 }
 
-// Dashboard View Component
 function DashboardView({ dashboard, formatDate, tasks }) {
   if (!dashboard) return null;
-
   const completionPercentage = dashboard.completion_rate || 0;
-
   const tradeBreakdown = {};
-  tasks.forEach(task => {
-    if (task.trade) {
-      tradeBreakdown[task.trade] = (tradeBreakdown[task.trade] || 0) + 1;
-    }
-  });
+  tasks.forEach(task => { if (task.trade) tradeBreakdown[task.trade] = (tradeBreakdown[task.trade] || 0) + 1; });
 
   return (
-    <div data-testid="dashboard-view">
-      <h2 className="text-3xl font-bold text-[#37352f] mb-8">Dashboard</h2>
-      
-      <div className="grid grid-cols-4 gap-4 mb-8" data-testid="stats-cards">
+    <div className="p-8" data-testid="dashboard-view">
+      <h2 className="text-3xl font-bold text-slate-800 mb-8">Dashboard</h2>
+      <div className="grid grid-cols-4 gap-4 mb-8">
         <StatCard label="Total Tasks" value={dashboard.total_tasks} icon={<List className="w-5 h-5 text-blue-600" />} color="bg-blue-50" />
-        <StatCard label="To Do" value={dashboard.status_breakdown.todo} icon={<Circle className="w-5 h-5 text-gray-500" />} color="bg-gray-50" />
+        <StatCard label="To Do" value={dashboard.status_breakdown.todo} icon={<Circle className="w-5 h-5 text-slate-500" />} color="bg-slate-50" />
         <StatCard label="In Progress" value={dashboard.status_breakdown.in_progress} icon={<Clock className="w-5 h-5 text-orange-500" />} color="bg-orange-50" />
         <StatCard label="Completed" value={dashboard.status_breakdown.completed} icon={<CheckCircle2 className="w-5 h-5 text-green-600" />} color="bg-green-50" />
       </div>
-
       <div className="grid grid-cols-2 gap-6 mb-8">
-        <div className="bg-white border border-[#e3e2de] rounded-lg p-6" data-testid="completion-progress">
-          <h3 className="text-lg font-semibold text-[#37352f] mb-4">Completion Progress</h3>
-          <div className="relative pt-1">
-            <div className="flex mb-2 items-center justify-between">
-              <span className="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full text-green-600 bg-green-50">
-                {completionPercentage}% Complete
-              </span>
-            </div>
-            <div className="overflow-hidden h-4 mb-4 text-xs flex rounded-full bg-gray-100">
-              <div style={{ width: `${completionPercentage}%` }} className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-green-500 transition-all duration-500"></div>
-            </div>
+        <div className="bg-white border border-slate-200 rounded-xl p-6">
+          <h3 className="text-lg font-semibold text-slate-800 mb-4">Completion Progress</h3>
+          <div className="flex mb-2 items-center justify-between">
+            <span className="text-xs font-semibold py-1 px-2 rounded-full text-green-600 bg-green-50">{completionPercentage}% Complete</span>
+          </div>
+          <div className="h-4 rounded-full bg-slate-100">
+            <div style={{ width: `${completionPercentage}%` }} className="h-4 rounded-full bg-green-500 transition-all"></div>
           </div>
         </div>
-
-        <div className="bg-white border border-[#e3e2de] rounded-lg p-6" data-testid="priority-breakdown">
-          <h3 className="text-lg font-semibold text-[#37352f] mb-4">Priority Breakdown</h3>
-          <div className="space-y-3">
-            <PriorityBar label="High" count={dashboard.priority_breakdown.high} total={dashboard.total_tasks} color="bg-red-500" />
-            <PriorityBar label="Medium" count={dashboard.priority_breakdown.medium} total={dashboard.total_tasks} color="bg-orange-500" />
-            <PriorityBar label="Low" count={dashboard.priority_breakdown.low} total={dashboard.total_tasks} color="bg-green-500" />
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-6 mb-8">
-        <div className="bg-white border border-[#e3e2de] rounded-lg p-6" data-testid="trade-breakdown">
-          <h3 className="text-lg font-semibold text-[#37352f] mb-4 flex items-center gap-2">
-            <Wrench className="w-5 h-5 text-cyan-600" />
-            Trade Breakdown
-          </h3>
+        <div className="bg-white border border-slate-200 rounded-xl p-6">
+          <h3 className="text-lg font-semibold text-slate-800 mb-4">Trade Breakdown</h3>
           <div className="space-y-2">
-            {Object.entries(tradeBreakdown).length > 0 ? (
-              Object.entries(tradeBreakdown).map(([trade, count]) => (
-                <div key={trade} className="flex items-center justify-between py-2 border-b border-[#e3e2de] last:border-0">
-                  <span className="flex items-center gap-2">
-                    <span>{TRADES[trade]?.icon || '🔨'}</span>
-                    <span className="text-sm text-[#37352f]">{trade}</span>
-                  </span>
-                  <span className="text-sm font-medium text-[#9b9a97]">{count}</span>
-                </div>
-              ))
-            ) : (
-              <p className="text-sm text-[#9b9a97]">No trades assigned yet</p>
-            )}
-          </div>
-        </div>
-
-        <div className="bg-white border border-[#e3e2de] rounded-lg p-6" data-testid="categories-breakdown">
-          <h3 className="text-lg font-semibold text-[#37352f] mb-4">Categories</h3>
-          <div className="space-y-2">
-            {Object.entries(dashboard.categories || {}).map(([category, count]) => (
-              <div key={category} className="flex items-center justify-between py-2 border-b border-[#e3e2de] last:border-0">
-                <span className="flex items-center gap-2">
-                  <Tag className="w-4 h-4 text-purple-500" />
-                  <span className="text-sm text-[#37352f]">{category}</span>
-                </span>
-                <span className="text-sm font-medium text-[#9b9a97]">{count}</span>
+            {Object.entries(tradeBreakdown).length > 0 ? Object.entries(tradeBreakdown).map(([trade, count]) => (
+              <div key={trade} className="flex items-center justify-between py-2 border-b border-slate-100 last:border-0">
+                <span className="flex items-center gap-2"><span>{TRADES[trade]?.icon || '🔨'}</span><span className="text-sm text-slate-700">{trade}</span></span>
+                <span className="text-sm font-medium text-slate-500">{count}</span>
               </div>
-            ))}
+            )) : <p className="text-sm text-slate-400">No trades assigned yet</p>}
           </div>
-        </div>
-      </div>
-
-      <div className="bg-white border border-[#e3e2de] rounded-lg p-6" data-testid="overdue-tasks">
-        <h3 className="text-lg font-semibold text-[#37352f] mb-4 flex items-center gap-2">
-          <AlertCircle className="w-5 h-5 text-red-500" />
-          Overdue Tasks ({dashboard.overdue_count})
-        </h3>
-        <div className="space-y-2">
-          {dashboard.overdue_tasks && dashboard.overdue_tasks.length > 0 ? (
-            dashboard.overdue_tasks.map(task => (
-              <div key={task.id} className="flex items-center justify-between py-2 border-b border-[#e3e2de] last:border-0">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-[#37352f]">{task.title}</span>
-                  {task.trade && (
-                    <span className="text-xs px-2 py-0.5 rounded bg-cyan-50 text-cyan-700">
-                      {TRADES[task.trade]?.icon} {task.trade}
-                    </span>
-                  )}
-                </div>
-                <span className="text-xs text-red-500">{formatDate(task.due_date)}</span>
-              </div>
-            ))
-          ) : (
-            <p className="text-sm text-green-600 flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4" />
-              No overdue tasks! 🎉
-            </p>
-          )}
         </div>
       </div>
     </div>
@@ -1014,224 +987,88 @@ function DashboardView({ dashboard, formatDate, tasks }) {
 
 function StatCard({ label, value, icon, color }) {
   return (
-    <div className={`${color} rounded-lg p-4 border border-[#e3e2de]`} data-testid={`stat-${label.toLowerCase().replace(' ', '-')}`}>
+    <div className={`${color} rounded-xl p-4 border border-slate-200`}>
       <div className="flex items-center justify-between">
-        <div>
-          <p className="text-2xl font-bold text-[#37352f]">{value}</p>
-          <p className="text-sm text-[#9b9a97]">{label}</p>
-        </div>
+        <div><p className="text-2xl font-bold text-slate-800">{value}</p><p className="text-sm text-slate-500">{label}</p></div>
         {icon}
       </div>
     </div>
   );
 }
 
-function PriorityBar({ label, count, total, color }) {
-  const percentage = total > 0 ? (count / total) * 100 : 0;
-  return (
-    <div className="flex items-center gap-3">
-      <span className="text-sm text-[#9b9a97] w-16">{label}</span>
-      <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
-        <div className={`h-full ${color}`} style={{ width: `${percentage}%` }}></div>
-      </div>
-      <span className="text-sm font-medium text-[#37352f] w-8 text-right">{count}</span>
-    </div>
-  );
-}
-
-// Task Modal Component with Measurements
 function TaskModal({ formData, setFormData, editingTask, categories, trades, handleSubmit, closeModal, onAddTrade }) {
   const selectedTrade = formData.trade ? TRADES[formData.trade] : null;
   const measurementFields = selectedTrade?.measurementFields || [];
-
-  const handleMeasurementChange = (key, value) => {
-    setFormData({
-      ...formData,
-      measurements: {
-        ...formData.measurements,
-        [key]: value ? parseFloat(value) : undefined
-      }
-    });
-  };
-
-  const handleTradeChange = (e) => {
-    const value = e.target.value;
-    if (value === '__add_new__') {
-      onAddTrade();
-    } else {
-      setFormData({ ...formData, trade: value, measurements: {} });
-    }
-  };
+  const handleMeasurementChange = (key, value) => { setFormData({ ...formData, measurements: { ...formData.measurements, [key]: value ? parseFloat(value) : undefined } }); };
+  const handleTradeChange = (e) => { const value = e.target.value; if (value === '__add_new__') { onAddTrade(); } else { setFormData({ ...formData, trade: value, measurements: {} }); } };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 modal-backdrop" data-testid="task-modal">
-      <div className="bg-white rounded-lg w-full max-w-lg p-6 modal-content max-h-[90vh] overflow-y-auto" data-testid="modal-content">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-6">
-          <h3 className="text-xl font-semibold text-[#37352f]">
-            {editingTask ? 'Edit Task' : 'New Task'}
-          </h3>
-          <button onClick={closeModal} className="p-1 hover:bg-[#efefef] rounded" data-testid="close-modal">
-            <X className="w-5 h-5 text-[#9b9a97]" />
-          </button>
+          <h3 className="text-xl font-semibold text-slate-800">{editingTask ? 'Edit Task' : 'New Task'}</h3>
+          <button onClick={closeModal} className="p-1 hover:bg-slate-100 rounded"><X className="w-5 h-5 text-slate-400" /></button>
         </div>
-        
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-[#37352f] mb-1">Title *</label>
-            <input
-              type="text"
-              value={formData.title}
-              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              className="w-full px-3 py-2 border border-[#e3e2de] rounded-md text-sm"
-              placeholder="What needs to be done?"
-              required
-              data-testid="input-title"
-            />
+            <label className="block text-sm font-medium text-slate-700 mb-1">Title *</label>
+            <input type="text" value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" placeholder="Task title" required />
           </div>
-          
           <div>
-            <label className="block text-sm font-medium text-[#37352f] mb-1">Description</label>
-            <textarea
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="w-full px-3 py-2 border border-[#e3e2de] rounded-md text-sm resize-none"
-              rows={2}
-              placeholder="Add more details..."
-              data-testid="input-description"
-            />
+            <label className="block text-sm font-medium text-slate-700 mb-1">Description</label>
+            <textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm resize-none" rows={2} placeholder="Details..." />
           </div>
-          
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-[#37352f] mb-1">
-                <Flag className="w-4 h-4 inline mr-1" />
-                Status
-              </label>
-              <select
-                value={formData.status}
-                onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                className="w-full px-3 py-2 border border-[#e3e2de] rounded-md text-sm bg-white"
-                data-testid="select-status"
-              >
-                <option value="todo">To Do</option>
-                <option value="in_progress">In Progress</option>
-                <option value="completed">Completed</option>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Status</label>
+              <select value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white">
+                <option value="todo">To Do</option><option value="in_progress">In Progress</option><option value="completed">Completed</option>
               </select>
             </div>
-            
             <div>
-              <label className="block text-sm font-medium text-[#37352f] mb-1">
-                <Flag className="w-4 h-4 inline mr-1" />
-                Priority
-              </label>
-              <select
-                value={formData.priority}
-                onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
-                className="w-full px-3 py-2 border border-[#e3e2de] rounded-md text-sm bg-white"
-                data-testid="select-priority"
-              >
-                <option value="low">🟢 Low</option>
-                <option value="medium">🟠 Medium</option>
-                <option value="high">🔴 High</option>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Priority</label>
+              <select value={formData.priority} onChange={(e) => setFormData({ ...formData, priority: e.target.value })} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white">
+                <option value="low">🟢 Low</option><option value="medium">🟠 Medium</option><option value="high">🔴 High</option>
               </select>
             </div>
           </div>
-          
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-[#37352f] mb-1">
-                <Tag className="w-4 h-4 inline mr-1" />
-                Category
-              </label>
-              <select
-                value={formData.category}
-                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                className="w-full px-3 py-2 border border-[#e3e2de] rounded-md text-sm bg-white"
-                data-testid="select-category"
-              >
-                {categories.map(cat => (
-                  <option key={cat} value={cat}>{cat}</option>
-                ))}
+              <label className="block text-sm font-medium text-slate-700 mb-1">Category</label>
+              <select value={formData.category} onChange={(e) => setFormData({ ...formData, category: e.target.value })} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white">
+                {categories.map(cat => (<option key={cat} value={cat}>{cat}</option>))}
               </select>
             </div>
-            
             <div>
-              <label className="block text-sm font-medium text-[#37352f] mb-1">
-                <Wrench className="w-4 h-4 inline mr-1" />
-                Trade
-              </label>
-              <select
-                value={formData.trade}
-                onChange={handleTradeChange}
-                className="w-full px-3 py-2 border border-[#e3e2de] rounded-md text-sm bg-white"
-                data-testid="select-trade"
-              >
+              <label className="block text-sm font-medium text-slate-700 mb-1">Trade</label>
+              <select value={formData.trade} onChange={handleTradeChange} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white">
                 <option value="">No Trade</option>
-                {trades.map(trade => (
-                  <option key={trade} value={trade}>{TRADES[trade]?.icon || '🔨'} {trade}</option>
-                ))}
-                <option value="__add_new__" className="text-blue-600">➕ Add Trade...</option>
+                {trades.map(trade => (<option key={trade} value={trade}>{TRADES[trade]?.icon || '🔨'} {trade}</option>))}
+                <option value="__add_new__">➕ Add Trade...</option>
               </select>
             </div>
           </div>
-          
           <div>
-            <label className="block text-sm font-medium text-[#37352f] mb-1">
-              <Calendar className="w-4 h-4 inline mr-1" />
-              Due Date
-            </label>
-            <input
-              type="date"
-              value={formData.due_date}
-              onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
-              className="w-full px-3 py-2 border border-[#e3e2de] rounded-md text-sm"
-              data-testid="input-due-date"
-            />
+            <label className="block text-sm font-medium text-slate-700 mb-1">Due Date</label>
+            <input type="date" value={formData.due_date} onChange={(e) => setFormData({ ...formData, due_date: e.target.value })} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
           </div>
-
-          {/* Measurements Section */}
           {measurementFields.length > 0 && (
-            <div className="border-t border-[#e3e2de] pt-4 mt-4">
-              <h4 className="text-sm font-medium text-[#37352f] mb-3 flex items-center gap-2">
-                <Ruler className="w-4 h-4 text-green-600" />
-                Measurements (for material calculation)
-              </h4>
-              <p className="text-xs text-[#9b9a97] mb-3">All material quantities will be rounded UP to whole numbers</p>
+            <div className="border-t border-slate-200 pt-4">
+              <h4 className="text-sm font-medium text-slate-700 mb-3 flex items-center gap-2"><Ruler className="w-4 h-4 text-emerald-600" />Measurements</h4>
+              <p className="text-xs text-slate-500 mb-3">All quantities rounded UP to whole numbers</p>
               <div className="grid grid-cols-2 gap-3">
                 {measurementFields.map(field => (
                   <div key={field.key}>
-                    <label className="block text-xs text-[#9b9a97] mb-1">{field.label}</label>
-                    <input
-                      type="number"
-                      step="0.1"
-                      value={formData.measurements[field.key] || ''}
-                      onChange={(e) => handleMeasurementChange(field.key, e.target.value)}
-                      className="w-full px-3 py-2 border border-[#e3e2de] rounded-md text-sm"
-                      placeholder={field.placeholder}
-                      data-testid={`input-${field.key}`}
-                    />
+                    <label className="block text-xs text-slate-500 mb-1">{field.label}</label>
+                    <input type="number" step="0.1" value={formData.measurements[field.key] || ''} onChange={(e) => handleMeasurementChange(field.key, e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" placeholder={field.placeholder} />
                   </div>
                 ))}
               </div>
             </div>
           )}
-          
           <div className="flex justify-end gap-3 pt-4">
-            <button
-              type="button"
-              onClick={closeModal}
-              className="px-4 py-2 text-sm text-[#9b9a97] hover:bg-[#efefef] rounded-md transition-colors"
-              data-testid="cancel-btn"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="px-4 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-              data-testid="submit-task-btn"
-            >
-              {editingTask ? 'Save Changes' : 'Create Task'}
-            </button>
+            <button type="button" onClick={closeModal} className="px-4 py-2 text-sm text-slate-500 hover:bg-slate-100 rounded-lg">Cancel</button>
+            <button type="submit" className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700">{editingTask ? 'Save Changes' : 'Create Task'}</button>
           </div>
         </form>
       </div>
