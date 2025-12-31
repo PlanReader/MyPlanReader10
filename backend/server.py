@@ -117,6 +117,7 @@ async def create_task(task: TaskCreate):
         "status": task.status,
         "priority": task.priority,
         "category": task.category or "General",
+        "trade": task.trade,
         "due_date": task.due_date,
         "created_at": now,
         "updated_at": now
