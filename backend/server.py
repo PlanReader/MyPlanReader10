@@ -183,6 +183,7 @@ class TaskCreate(BaseModel):
     category: Optional[str] = "General"
     trade: Optional[str] = None  # Drywall, HVAC, Painting, Electrical, Plumbing, General, etc.
     due_date: Optional[str] = None
+    measurements: Optional[Dict] = None  # For material calculations
 
 class TaskUpdate(BaseModel):
     title: Optional[str] = None
@@ -192,6 +193,7 @@ class TaskUpdate(BaseModel):
     category: Optional[str] = None
     trade: Optional[str] = None
     due_date: Optional[str] = None
+    measurements: Optional[Dict] = None
 
 class Task(BaseModel):
     id: str
@@ -202,8 +204,15 @@ class Task(BaseModel):
     category: str
     trade: Optional[str]
     due_date: Optional[str]
+    measurements: Optional[Dict]
+    materials: Optional[Dict]
     created_at: str
     updated_at: str
+
+# Material calculation request model
+class MaterialCalculation(BaseModel):
+    trade: str
+    measurements: Dict
 
 # Helper function to convert MongoDB document to Task
 def task_helper(task) -> dict:
@@ -216,9 +225,47 @@ def task_helper(task) -> dict:
         "category": task.get("category", "General"),
         "trade": task.get("trade"),
         "due_date": task.get("due_date"),
+        "measurements": task.get("measurements"),
+        "materials": task.get("materials"),
         "created_at": task["created_at"],
         "updated_at": task["updated_at"]
     }
+
+def calculate_materials_for_trade(trade: str, measurements: Dict) -> Dict:
+    """Calculate materials based on trade type - ALL VALUES ROUNDED UP"""
+    if not trade or not measurements:
+        return None
+    
+    trade_lower = trade.lower()
+    
+    if trade_lower == "drywall":
+        length = float(measurements.get("length_ft", 0))
+        height = float(measurements.get("height_ft", 8))
+        return calculate_drywall_materials(length, height)
+    
+    elif trade_lower == "hvac":
+        sq_ft = float(measurements.get("sq_ft_coverage", 0))
+        vents = int(measurements.get("num_vents", 1))
+        return calculate_hvac_materials(sq_ft, vents)
+    
+    elif trade_lower == "painting":
+        sq_ft = float(measurements.get("sq_ft", 0))
+        coats = int(measurements.get("coats", 2))
+        return calculate_painting_materials(sq_ft, coats)
+    
+    elif trade_lower == "electrical":
+        outlets = int(measurements.get("num_outlets", 0))
+        switches = int(measurements.get("num_switches", 0))
+        wire_ft = float(measurements.get("wire_runs_ft", 0))
+        return calculate_electrical_materials(outlets, switches, wire_ft)
+    
+    elif trade_lower == "plumbing":
+        pipe_ft = float(measurements.get("pipe_runs_ft", 0))
+        fixtures = int(measurements.get("num_fixtures", 0))
+        return calculate_plumbing_materials(pipe_ft, fixtures)
+    
+    else:
+        return calculate_general_materials(str(measurements))
 
 # API Routes
 @app.get("/api/health")
