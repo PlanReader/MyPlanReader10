@@ -658,6 +658,139 @@ async def export_tasks_csv(trade: Optional[str] = None, status: Optional[str] = 
         headers={"Content-Disposition": f"attachment; filename=tasks_export_{datetime.utcnow().strftime('%Y%m%d')}.csv"}
     )
 
+# ============================================
+# BLUEPRINT PROCESSING API
+# ============================================
+
+class BlueprintUpload(BaseModel):
+    filename: str
+    page_count: int
+    selected_trades: List[str]  # e.g., ["Drywall", "Painting", "Stucco"]
+    total_fee: float
+
+@app.post("/api/process-blueprint")
+async def process_blueprint(upload: BlueprintUpload):
+    """
+    Process uploaded blueprint and generate materials.
+    Simulates parsing blueprint divisions and calculating whole-unit quantities.
+    All material quantities are ROUNDED UP to whole numbers.
+    """
+    import random
+    import time
+    
+    # Validate page count
+    if upload.page_count > 25:
+        raise HTTPException(status_code=400, detail="Maximum 25 pages allowed for single use")
+    
+    # Generate realistic measurements based on page count (more pages = larger project)
+    base_sq_ft = upload.page_count * random.randint(150, 300)
+    base_linear_ft = upload.page_count * random.randint(40, 80)
+    wall_height = 8  # Standard wall height
+    
+    # Store the project
+    project_id = str(uuid.uuid4())
+    now = datetime.utcnow().isoformat()
+    
+    all_materials = {}
+    tasks_created = []
+    
+    for trade in upload.selected_trades:
+        trade_lower = trade.lower()
+        materials = {}
+        
+        if trade_lower == "drywall":
+            # Calculate drywall materials based on linear footage
+            materials = calculate_drywall_materials(base_linear_ft, wall_height)
+            task_title = f"Drywall Takeoff - {upload.filename}"
+            measurements = {"length_ft": base_linear_ft, "height_ft": wall_height}
+            
+        elif trade_lower == "painting":
+            # Calculate interior painting materials
+            materials = calculate_painting_materials(base_sq_ft, 2)
+            task_title = f"Interior Painting - {upload.filename}"
+            measurements = {"sq_ft": base_sq_ft, "coats": 2}
+            
+        elif trade_lower == "stucco":
+            # Calculate stucco materials (typically 60% of wall area for exterior)
+            stucco_sq_ft = math.ceil(base_sq_ft * 0.6)
+            materials = calculate_stucco_materials(stucco_sq_ft)
+            task_title = f"Stucco Work - {upload.filename}"
+            measurements = {"sq_ft": stucco_sq_ft}
+            
+        elif trade_lower == "exterior paint":
+            # Calculate exterior paint materials
+            exterior_sq_ft = math.ceil(base_sq_ft * 0.5)
+            materials = calculate_exterior_paint_materials(exterior_sq_ft, 2)
+            task_title = f"Exterior Paint - {upload.filename}"
+            measurements = {"sq_ft": exterior_sq_ft, "coats": 2}
+        
+        else:
+            continue
+        
+        # Create task for this trade
+        task_data = {
+            "id": str(uuid.uuid4()),
+            "title": task_title,
+            "description": f"Auto-generated from blueprint: {upload.filename} ({upload.page_count} pages)",
+            "status": "todo",
+            "priority": "high",
+            "category": "Work",
+            "trade": trade,
+            "due_date": None,
+            "measurements": measurements,
+            "materials": materials,
+            "project_id": project_id,
+            "created_at": now,
+            "updated_at": now
+        }
+        
+        tasks_collection.insert_one(task_data)
+        tasks_created.append({
+            "task_id": task_data["id"],
+            "trade": trade,
+            "materials": materials
+        })
+        
+        # Aggregate materials
+        for item, qty in materials.items():
+            if isinstance(qty, (int, float)):
+                all_materials[item] = all_materials.get(item, 0) + math.ceil(qty)
+    
+    # Ensure all final quantities are whole numbers
+    final_materials = {k: math.ceil(v) for k, v in all_materials.items()}
+    
+    return {
+        "success": True,
+        "project_id": project_id,
+        "filename": upload.filename,
+        "page_count": upload.page_count,
+        "trades_processed": upload.selected_trades,
+        "total_fee": upload.total_fee,
+        "tasks_created": len(tasks_created),
+        "aggregated_materials": final_materials,
+        "total_material_items": len(final_materials),
+        "breakdown": tasks_created,
+        "note": "All quantities are WHOLE NUMBERS (rounded UP)"
+    }
+
+@app.get("/api/pricing")
+async def get_pricing():
+    """Get current pricing for blueprint processing"""
+    return {
+        "base_trade": {
+            "name": "Drywall",
+            "price": 25.00,
+            "included": True
+        },
+        "add_ons": [
+            {"name": "Painting", "price": 10.00},
+            {"name": "Stucco", "price": 10.00},
+            {"name": "Exterior Paint", "price": 10.00}
+        ],
+        "max_pages": 25,
+        "currency": "USD"
+    }
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8001)
