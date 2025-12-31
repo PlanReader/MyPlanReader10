@@ -27,3 +27,7 @@ Thumbs.db
 .vscode/
 .idea/
 *.swp
+-e 
+# Environment files
+*.env
+*.env.*
