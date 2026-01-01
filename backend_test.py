@@ -204,6 +204,319 @@ def test_stripe_config():
         log_test("Stripe Configuration", "FAIL", f"Exception: {str(e)}")
         return False
 
+# ============================================
+# NEW AIA DIVISION AND SIMPSON CATALOG TESTS
+# ============================================
+
+def test_aia_divisions():
+    """Test 8: AIA Divisions - GET /api/aia-divisions"""
+    try:
+        response = requests.get(f"{API_BASE}/aia-divisions", timeout=10)
+        if response.status_code == 200:
+            data = response.json()
+            required_fields = ["divisions", "supported", "description"]
+            if all(field in data for field in required_fields):
+                divisions_count = len(data.get("divisions", {}))
+                supported = data.get("supported", [])
+                log_test("AIA Divisions", "PASS", f"Found {divisions_count} divisions, supported: {', '.join(supported)}")
+                return True
+            else:
+                log_test("AIA Divisions", "FAIL", f"Missing required fields: {data}")
+                return False
+        else:
+            log_test("AIA Divisions", "FAIL", f"HTTP {response.status_code}: {response.text}")
+            return False
+    except Exception as e:
+        log_test("AIA Divisions", "FAIL", f"Exception: {str(e)}")
+        return False
+
+def test_aia_division_detail():
+    """Test 9: AIA Division Detail - GET /api/aia-divisions/06"""
+    try:
+        response = requests.get(f"{API_BASE}/aia-divisions/06", timeout=10)
+        if response.status_code == 200:
+            data = response.json()
+            required_fields = ["code", "name", "description"]
+            if all(field in data for field in required_fields):
+                log_test("AIA Division 06 Detail", "PASS", f"Division 06: {data.get('name')}")
+                return True
+            else:
+                log_test("AIA Division 06 Detail", "FAIL", f"Missing required fields: {data}")
+                return False
+        else:
+            log_test("AIA Division 06 Detail", "FAIL", f"HTTP {response.status_code}: {response.text}")
+            return False
+    except Exception as e:
+        log_test("AIA Division 06 Detail", "FAIL", f"Exception: {str(e)}")
+        return False
+
+def test_lumber_sizes():
+    """Test 10: Lumber Sizes - GET /api/lumber-sizes"""
+    try:
+        response = requests.get(f"{API_BASE}/lumber-sizes", timeout=10)
+        if response.status_code == 200:
+            data = response.json()
+            if "dimensional_lumber" in data and "engineered_lumber" in data:
+                dimensional_count = len(data.get("dimensional_lumber", {}))
+                log_test("Lumber Sizes", "PASS", f"Found {dimensional_count} dimensional lumber sizes (2x4, 2x6, etc.)")
+                return True
+            else:
+                log_test("Lumber Sizes", "FAIL", f"Missing lumber categories: {data}")
+                return False
+        else:
+            log_test("Lumber Sizes", "FAIL", f"HTTP {response.status_code}: {response.text}")
+            return False
+    except Exception as e:
+        log_test("Lumber Sizes", "FAIL", f"Exception: {str(e)}")
+        return False
+
+def test_fasteners():
+    """Test 11: Fasteners - GET /api/fasteners"""
+    try:
+        response = requests.get(f"{API_BASE}/fasteners", timeout=10)
+        if response.status_code == 200:
+            data = response.json()
+            if "nails" in data and "screws" in data and "bolts" in data:
+                nails_count = len(data.get("nails", {}))
+                screws_count = len(data.get("screws", {}))
+                log_test("Fasteners", "PASS", f"Found {nails_count} nail types, {screws_count} screw types")
+                return True
+            else:
+                log_test("Fasteners", "FAIL", f"Missing fastener categories: {data}")
+                return False
+        else:
+            log_test("Fasteners", "FAIL", f"HTTP {response.status_code}: {response.text}")
+            return False
+    except Exception as e:
+        log_test("Fasteners", "FAIL", f"Exception: {str(e)}")
+        return False
+
+def test_concrete_anchors():
+    """Test 12: Concrete Anchors - GET /api/concrete-anchors"""
+    try:
+        response = requests.get(f"{API_BASE}/concrete-anchors", timeout=10)
+        if response.status_code == 200:
+            data = response.json()
+            if "anchors" in data and isinstance(data["anchors"], dict):
+                anchors_count = len(data.get("anchors", {}))
+                log_test("Concrete Anchors", "PASS", f"Found {anchors_count} anchor types")
+                return True
+            else:
+                log_test("Concrete Anchors", "FAIL", f"Invalid anchor data format: {data}")
+                return False
+        else:
+            log_test("Concrete Anchors", "FAIL", f"HTTP {response.status_code}: {response.text}")
+            return False
+    except Exception as e:
+        log_test("Concrete Anchors", "FAIL", f"Exception: {str(e)}")
+        return False
+
+def test_simpson_catalog():
+    """Test 13: Simpson Catalog - GET /api/simpson-catalog"""
+    try:
+        response = requests.get(f"{API_BASE}/simpson-catalog", timeout=10)
+        if response.status_code == 200:
+            data = response.json()
+            required_fields = ["connectors", "configurations", "total_products"]
+            if all(field in data for field in required_fields):
+                total_products = data.get("total_products", 0)
+                connectors_count = len(data.get("connectors", {}))
+                log_test("Simpson Catalog", "PASS", f"Found {total_products} total products in {connectors_count} categories")
+                return True
+            else:
+                log_test("Simpson Catalog", "FAIL", f"Missing required fields: {data}")
+                return False
+        else:
+            log_test("Simpson Catalog", "FAIL", f"HTTP {response.status_code}: {response.text}")
+            return False
+    except Exception as e:
+        log_test("Simpson Catalog", "FAIL", f"Exception: {str(e)}")
+        return False
+
+def test_simpson_product_h25a():
+    """Test 14: Simpson Product H2.5A - GET /api/simpson-product/H2.5A"""
+    try:
+        response = requests.get(f"{API_BASE}/simpson-product/H2.5A", timeout=10)
+        if response.status_code == 200:
+            data = response.json()
+            required_fields = ["model", "description", "load_ratings"]
+            if all(field in data for field in required_fields):
+                model = data.get("model")
+                description = data.get("description")
+                log_test("Simpson Product H2.5A", "PASS", f"Model: {model}, Description: {description}")
+                return True
+            else:
+                log_test("Simpson Product H2.5A", "FAIL", f"Missing required fields: {data}")
+                return False
+        else:
+            log_test("Simpson Product H2.5A", "FAIL", f"HTTP {response.status_code}: {response.text}")
+            return False
+    except Exception as e:
+        log_test("Simpson Product H2.5A", "FAIL", f"Exception: {str(e)}")
+        return False
+
+def test_simpson_product_lus210():
+    """Test 15: Simpson Product LUS210 - GET /api/simpson-product/LUS210"""
+    try:
+        response = requests.get(f"{API_BASE}/simpson-product/LUS210", timeout=10)
+        if response.status_code == 200:
+            data = response.json()
+            required_fields = ["model", "description", "load_ratings"]
+            if all(field in data for field in required_fields):
+                model = data.get("model")
+                description = data.get("description")
+                log_test("Simpson Product LUS210", "PASS", f"Model: {model}, Description: {description}")
+                return True
+            else:
+                log_test("Simpson Product LUS210", "FAIL", f"Missing required fields: {data}")
+                return False
+        else:
+            log_test("Simpson Product LUS210", "FAIL", f"HTTP {response.status_code}: {response.text}")
+            return False
+    except Exception as e:
+        log_test("Simpson Product LUS210", "FAIL", f"Exception: {str(e)}")
+        return False
+
+def test_mitek_catalog():
+    """Test 16: MiTek Catalog - GET /api/mitek-catalog"""
+    try:
+        response = requests.get(f"{API_BASE}/mitek-catalog", timeout=10)
+        if response.status_code == 200:
+            data = response.json()
+            if isinstance(data, dict) and len(data) > 0:
+                categories = list(data.keys())
+                log_test("MiTek Catalog", "PASS", f"Found MiTek products in categories: {', '.join(categories[:3])}")
+                return True
+            else:
+                log_test("MiTek Catalog", "FAIL", f"Empty or invalid catalog data: {data}")
+                return False
+        else:
+            log_test("MiTek Catalog", "FAIL", f"HTTP {response.status_code}: {response.text}")
+            return False
+    except Exception as e:
+        log_test("MiTek Catalog", "FAIL", f"Exception: {str(e)}")
+        return False
+
+def test_manual_takeoff():
+    """Test 17: Manual Takeoff - POST /api/manual-takeoff"""
+    try:
+        takeoff_data = {
+            "total_sqft": 2400,
+            "wall_linear_ft": 200,
+            "num_stories": 1,
+            "foundation_type": "slab",
+            "num_doors": 8,
+            "num_windows": 14
+        }
+        
+        response = requests.post(f"{API_BASE}/manual-takeoff", json=takeoff_data, timeout=15)
+        if response.status_code == 200:
+            data = response.json()
+            required_fields = ["success", "project_id", "takeoff"]
+            if all(field in data for field in required_fields):
+                project_id = data.get("project_id")
+                takeoff = data.get("takeoff", {})
+                materials_count = len(takeoff.get("materials", []))
+                log_test("Manual Takeoff", "PASS", f"Created project {project_id} with {materials_count} material items")
+                return True, project_id
+            else:
+                log_test("Manual Takeoff", "FAIL", f"Missing required fields: {data}")
+                return False, None
+        else:
+            log_test("Manual Takeoff", "FAIL", f"HTTP {response.status_code}: {response.text}")
+            return False, None
+    except Exception as e:
+        log_test("Manual Takeoff", "FAIL", f"Exception: {str(e)}")
+        return False, None
+
+def test_get_takeoff(project_id):
+    """Test 18: Get Takeoff - GET /api/takeoff/{project_id}"""
+    try:
+        response = requests.get(f"{API_BASE}/takeoff/{project_id}", timeout=10)
+        if response.status_code == 200:
+            data = response.json()
+            required_fields = ["project_id", "materials", "status"]
+            if all(field in data for field in required_fields):
+                materials_count = len(data.get("materials", []))
+                status = data.get("status")
+                log_test("Get Takeoff Results", "PASS", f"Retrieved {materials_count} materials, status: {status}")
+                return True
+            else:
+                log_test("Get Takeoff Results", "FAIL", f"Missing required fields: {data}")
+                return False
+        else:
+            log_test("Get Takeoff Results", "FAIL", f"HTTP {response.status_code}: {response.text}")
+            return False
+    except Exception as e:
+        log_test("Get Takeoff Results", "FAIL", f"Exception: {str(e)}")
+        return False
+
+def test_division_materials():
+    """Test 19-21: Division Materials - GET /api/materials/division-XX"""
+    results = []
+    
+    # Test Division 06 - Wood & Composites
+    try:
+        response = requests.get(f"{API_BASE}/materials/division-06", timeout=10)
+        if response.status_code == 200:
+            data = response.json()
+            required_fields = ["division", "name", "lumber_sizes", "connectors", "fasteners"]
+            if all(field in data for field in required_fields):
+                lumber_count = len(data.get("lumber_sizes", {}).get("dimensional_lumber", {}))
+                log_test("Division 06 Materials", "PASS", f"Wood & Composites: {lumber_count} lumber sizes")
+                results.append(True)
+            else:
+                log_test("Division 06 Materials", "FAIL", f"Missing required fields: {data}")
+                results.append(False)
+        else:
+            log_test("Division 06 Materials", "FAIL", f"HTTP {response.status_code}: {response.text}")
+            results.append(False)
+    except Exception as e:
+        log_test("Division 06 Materials", "FAIL", f"Exception: {str(e)}")
+        results.append(False)
+    
+    # Test Division 04 - Masonry
+    try:
+        response = requests.get(f"{API_BASE}/materials/division-04", timeout=10)
+        if response.status_code == 200:
+            data = response.json()
+            required_fields = ["division", "name", "materials"]
+            if all(field in data for field in required_fields):
+                materials_count = len(data.get("materials", {}))
+                log_test("Division 04 Materials", "PASS", f"Masonry: {materials_count} material types")
+                results.append(True)
+            else:
+                log_test("Division 04 Materials", "FAIL", f"Missing required fields: {data}")
+                results.append(False)
+        else:
+            log_test("Division 04 Materials", "FAIL", f"HTTP {response.status_code}: {response.text}")
+            results.append(False)
+    except Exception as e:
+        log_test("Division 04 Materials", "FAIL", f"Exception: {str(e)}")
+        results.append(False)
+    
+    # Test Division 07 - Thermal/Moisture
+    try:
+        response = requests.get(f"{API_BASE}/materials/division-07", timeout=10)
+        if response.status_code == 200:
+            data = response.json()
+            required_fields = ["division", "name", "materials"]
+            if all(field in data for field in required_fields):
+                materials_count = len(data.get("materials", {}))
+                log_test("Division 07 Materials", "PASS", f"Thermal/Moisture: {materials_count} material types")
+                results.append(True)
+            else:
+                log_test("Division 07 Materials", "FAIL", f"Missing required fields: {data}")
+                results.append(False)
+        else:
+            log_test("Division 07 Materials", "FAIL", f"HTTP {response.status_code}: {response.text}")
+            results.append(False)
+    except Exception as e:
+        log_test("Division 07 Materials", "FAIL", f"Exception: {str(e)}")
+        results.append(False)
+    
+    return results
+
 def main():
     """Run all tests"""
     print(f"{Colors.BOLD}{Colors.BLUE}MyPlanReader Backend API Test Suite{Colors.ENDC}")
