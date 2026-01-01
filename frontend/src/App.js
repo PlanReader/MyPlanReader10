@@ -867,13 +867,51 @@ function ProjectsView({ projects, onSelectProject, onRefresh }) {
   );
 }
 
-// Shopping List View Component
+// AIA Division Labels
+const AIA_DIVISIONS = {
+  "03": { name: "Concrete", icon: "🏗️", color: "bg-gray-100 text-gray-800" },
+  "04": { name: "Masonry", icon: "🧱", color: "bg-orange-100 text-orange-800" },
+  "06": { name: "Wood & Composites", icon: "🪵", color: "bg-amber-100 text-amber-800" },
+  "07": { name: "Thermal & Moisture", icon: "🛡️", color: "bg-blue-100 text-blue-800" },
+  "08": { name: "Openings", icon: "🚪", color: "bg-purple-100 text-purple-800" },
+  "09": { name: "Finishes", icon: "🎨", color: "bg-pink-100 text-pink-800" }
+};
+
+// Shopping List View Component - Supplier Ready Format
 function ShoppingListView({ projects, currentProject }) {
+  const [viewMode, setViewMode] = useState('table'); // 'table' or 'cards'
+  const [filterDivision, setFilterDivision] = useState('all');
   const completedProjects = projects.filter(p => p.status === 'complete' && p.materials);
   const projectToShow = currentProject || completedProjects[0];
 
-  const handleExport = () => {
-    window.open(`${BACKEND_URL}/api/export/shopping-list`, '_blank');
+  // Check if materials is in new format (array) or old format (object)
+  const isNewFormat = Array.isArray(projectToShow?.materials);
+  
+  const handleExportCSV = () => {
+    if (projectToShow?.id) {
+      window.open(`${BACKEND_URL}/api/export/takeoff/${projectToShow.id}`, '_blank');
+    } else {
+      window.open(`${BACKEND_URL}/api/export/shopping-list`, '_blank');
+    }
+  };
+
+  const handleExportXLSX = () => {
+    if (projectToShow?.id) {
+      window.open(`${BACKEND_URL}/api/export/takeoff/${projectToShow.id}/xlsx`, '_blank');
+    }
+  };
+
+  // Group materials by category for display
+  const groupMaterials = (materials) => {
+    if (!isNewFormat) return { legacy: Object.entries(materials) };
+    
+    const groups = {
+      lumber: materials.filter(m => m.order_line < 100),
+      connectors: materials.filter(m => m.order_line >= 100 && m.order_line < 200),
+      fasteners: materials.filter(m => m.order_line >= 200 && m.order_line < 300),
+      anchors: materials.filter(m => m.order_line >= 300)
+    };
+    return groups;
   };
 
   if (!projectToShow || !projectToShow.materials) {
@@ -889,39 +927,269 @@ function ShoppingListView({ projects, currentProject }) {
     );
   }
 
+  const materialGroups = groupMaterials(projectToShow.materials);
+
   return (
     <div className="p-8">
-      <div className="flex items-center justify-between mb-8">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-3xl font-bold text-gray-900">Shopping List</h2>
+          <h2 className="text-3xl font-bold text-gray-900">Supplier-Ready Material List</h2>
           <p className="text-sm text-gray-500 mt-1">
-            {projectToShow.filename} • All quantities are whole numbers (rounded UP)
+            {projectToShow.filename} • AIA Division 06 - Wood, Plastics & Composites
+          </p>
+          <p className="text-xs text-emerald-600 font-medium mt-1">
+            ✓ All quantities rounded UP to whole numbers for ordering
           </p>
         </div>
-        <button
-          onClick={handleExport}
-          className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700"
-        >
-          <Download className="w-4 h-4" />
-          Export CSV
-        </button>
-      </div>
-
-      <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
-        <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-          <Package className="w-5 h-5 text-emerald-600" />
-          Materials ({Object.keys(projectToShow.materials).length} items)
-        </h3>
-        
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-          {Object.entries(projectToShow.materials).map(([item, qty]) => (
-            <div key={item} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-100">
-              <span className="text-sm text-gray-700">{formatMaterialName(item)}</span>
-              <span className="text-xl font-bold text-emerald-700">{qty}</span>
-            </div>
-          ))}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setViewMode(viewMode === 'table' ? 'cards' : 'table')}
+            className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 text-sm"
+          >
+            {viewMode === 'table' ? 'Card View' : 'Table View'}
+          </button>
+          <button
+            onClick={handleExportCSV}
+            className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700"
+          >
+            <Download className="w-4 h-4" />
+            Export CSV
+          </button>
+          {isNewFormat && (
+            <button
+              onClick={handleExportXLSX}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
+              <Download className="w-4 h-4" />
+              Lumber Order
+            </button>
+          )}
         </div>
       </div>
+
+      {/* Project Summary */}
+      {projectToShow.total_sqft && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          <div className="bg-white rounded-lg border border-gray-200 p-4">
+            <p className="text-xs text-gray-500 uppercase tracking-wide">Total Sq Ft</p>
+            <p className="text-2xl font-bold text-gray-900">{projectToShow.total_sqft?.toLocaleString()}</p>
+          </div>
+          <div className="bg-white rounded-lg border border-gray-200 p-4">
+            <p className="text-xs text-gray-500 uppercase tracking-wide">Wall Linear Ft</p>
+            <p className="text-2xl font-bold text-gray-900">{projectToShow.wall_linear_ft?.toLocaleString() || '-'}</p>
+          </div>
+          <div className="bg-white rounded-lg border border-gray-200 p-4">
+            <p className="text-xs text-gray-500 uppercase tracking-wide">Stories</p>
+            <p className="text-2xl font-bold text-gray-900">{projectToShow.num_stories || 1}</p>
+          </div>
+          <div className="bg-white rounded-lg border border-gray-200 p-4">
+            <p className="text-xs text-gray-500 uppercase tracking-wide">Foundation</p>
+            <p className="text-2xl font-bold text-gray-900 capitalize">{projectToShow.foundation_type || 'Slab'}</p>
+          </div>
+        </div>
+      )}
+
+      {/* New Format - Supplier Ready Table */}
+      {isNewFormat ? (
+        <div className="space-y-6">
+          {/* Lumber Section */}
+          {materialGroups.lumber?.length > 0 && (
+            <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+              <div className="bg-amber-50 px-6 py-4 border-b border-amber-200">
+                <h3 className="text-lg font-semibold text-amber-900 flex items-center gap-2">
+                  🪵 Lumber & Sheathing ({materialGroups.lumber.length} items)
+                </h3>
+              </div>
+              {viewMode === 'table' ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-600">
+                      <tr>
+                        <th className="px-4 py-3 text-left">#</th>
+                        <th className="px-4 py-3 text-left">Description</th>
+                        <th className="px-4 py-3 text-left">Size</th>
+                        <th className="px-4 py-3 text-right">Qty</th>
+                        <th className="px-4 py-3 text-left">Length</th>
+                        <th className="px-4 py-3 text-left">Unit</th>
+                        <th className="px-4 py-3 text-left">Supplier Notes</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {materialGroups.lumber.map((item, idx) => (
+                        <tr key={idx} className="hover:bg-gray-50">
+                          <td className="px-4 py-3 text-sm text-gray-500">{item.order_line}</td>
+                          <td className="px-4 py-3 text-sm font-medium text-gray-900">{item.description}</td>
+                          <td className="px-4 py-3 text-sm text-gray-700">{item.lumber_size}</td>
+                          <td className="px-4 py-3 text-right text-lg font-bold text-emerald-700">{item.quantity}</td>
+                          <td className="px-4 py-3 text-sm text-gray-600">{item.length}</td>
+                          <td className="px-4 py-3 text-sm text-gray-600">{item.unit}</td>
+                          <td className="px-4 py-3 text-xs text-gray-500">{item.supplier_notes}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
+                  {materialGroups.lumber.map((item, idx) => (
+                    <div key={idx} className="bg-amber-50 rounded-lg p-4 border border-amber-200">
+                      <div className="flex justify-between items-start mb-2">
+                        <span className="text-xs text-gray-500">#{item.order_line}</span>
+                        <span className="text-2xl font-bold text-emerald-700">{item.quantity}</span>
+                      </div>
+                      <p className="font-semibold text-gray-900">{item.description}</p>
+                      <p className="text-sm text-gray-600">{item.lumber_size} × {item.length}</p>
+                      <p className="text-xs text-gray-500 mt-2">{item.supplier_notes}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Connectors Section - Simpson Strong-Tie */}
+          {materialGroups.connectors?.length > 0 && (
+            <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+              <div className="bg-blue-50 px-6 py-4 border-b border-blue-200">
+                <h3 className="text-lg font-semibold text-blue-900 flex items-center gap-2">
+                  🔧 Simpson Strong-Tie Connectors ({materialGroups.connectors.length} items)
+                </h3>
+              </div>
+              {viewMode === 'table' ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-600">
+                      <tr>
+                        <th className="px-4 py-3 text-left">#</th>
+                        <th className="px-4 py-3 text-left">Description</th>
+                        <th className="px-4 py-3 text-left">For Lumber</th>
+                        <th className="px-4 py-3 text-right">Qty</th>
+                        <th className="px-4 py-3 text-left">Unit</th>
+                        <th className="px-4 py-3 text-left">Supplier Notes</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {materialGroups.connectors.map((item, idx) => (
+                        <tr key={idx} className="hover:bg-gray-50">
+                          <td className="px-4 py-3 text-sm text-gray-500">{item.order_line}</td>
+                          <td className="px-4 py-3 text-sm font-medium text-gray-900">{item.description}</td>
+                          <td className="px-4 py-3 text-sm text-gray-700">{item.lumber_size}</td>
+                          <td className="px-4 py-3 text-right text-lg font-bold text-blue-700">{item.quantity}</td>
+                          <td className="px-4 py-3 text-sm text-gray-600">{item.unit}</td>
+                          <td className="px-4 py-3 text-xs text-gray-500">{item.supplier_notes}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
+                  {materialGroups.connectors.map((item, idx) => (
+                    <div key={idx} className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                      <div className="flex justify-between items-start mb-2">
+                        <span className="text-xs text-gray-500">#{item.order_line}</span>
+                        <span className="text-2xl font-bold text-blue-700">{item.quantity}</span>
+                      </div>
+                      <p className="font-semibold text-gray-900">{item.description}</p>
+                      <p className="text-xs text-gray-500 mt-2">{item.supplier_notes}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Fasteners Section */}
+          {materialGroups.fasteners?.length > 0 && (
+            <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+              <div className="bg-gray-100 px-6 py-4 border-b border-gray-300">
+                <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                  🔩 Fasteners ({materialGroups.fasteners.length} items)
+                </h3>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-600">
+                    <tr>
+                      <th className="px-4 py-3 text-left">#</th>
+                      <th className="px-4 py-3 text-left">Description</th>
+                      <th className="px-4 py-3 text-right">Qty</th>
+                      <th className="px-4 py-3 text-left">Unit</th>
+                      <th className="px-4 py-3 text-left">Supplier Notes</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {materialGroups.fasteners.map((item, idx) => (
+                      <tr key={idx} className="hover:bg-gray-50">
+                        <td className="px-4 py-3 text-sm text-gray-500">{item.order_line}</td>
+                        <td className="px-4 py-3 text-sm font-medium text-gray-900">{item.description}</td>
+                        <td className="px-4 py-3 text-right text-lg font-bold text-gray-700">{item.quantity}</td>
+                        <td className="px-4 py-3 text-sm text-gray-600">{item.unit}</td>
+                        <td className="px-4 py-3 text-xs text-gray-500">{item.supplier_notes}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* Anchors Section */}
+          {materialGroups.anchors?.length > 0 && (
+            <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+              <div className="bg-stone-100 px-6 py-4 border-b border-stone-300">
+                <h3 className="text-lg font-semibold text-stone-900 flex items-center gap-2">
+                  ⚓ Anchors & Concrete Fasteners ({materialGroups.anchors.length} items)
+                </h3>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-600">
+                    <tr>
+                      <th className="px-4 py-3 text-left">#</th>
+                      <th className="px-4 py-3 text-left">Description</th>
+                      <th className="px-4 py-3 text-right">Qty</th>
+                      <th className="px-4 py-3 text-left">Length</th>
+                      <th className="px-4 py-3 text-left">Unit</th>
+                      <th className="px-4 py-3 text-left">Supplier Notes</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {materialGroups.anchors.map((item, idx) => (
+                      <tr key={idx} className="hover:bg-gray-50">
+                        <td className="px-4 py-3 text-sm text-gray-500">{item.order_line}</td>
+                        <td className="px-4 py-3 text-sm font-medium text-gray-900">{item.description}</td>
+                        <td className="px-4 py-3 text-right text-lg font-bold text-stone-700">{item.quantity}</td>
+                        <td className="px-4 py-3 text-sm text-gray-600">{item.length}</td>
+                        <td className="px-4 py-3 text-sm text-gray-600">{item.unit}</td>
+                        <td className="px-4 py-3 text-xs text-gray-500">{item.supplier_notes}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+      ) : (
+        /* Legacy Format - Simple Grid */
+        <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
+          <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+            <Package className="w-5 h-5 text-emerald-600" />
+            Materials ({Object.keys(projectToShow.materials).length} items)
+          </h3>
+          
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+            {Object.entries(projectToShow.materials).map(([item, qty]) => (
+              <div key={item} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-100">
+                <span className="text-sm text-gray-700">{formatMaterialName(item)}</span>
+                <span className="text-xl font-bold text-emerald-700">{qty}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Donation confirmation */}
       <div className="mt-6 bg-red-50 border border-red-200 rounded-xl p-4 flex items-center gap-3">
@@ -929,6 +1197,18 @@ function ShoppingListView({ projects, currentProject }) {
         <div>
           <p className="font-semibold text-red-800">Thank you for supporting our heroes!</p>
           <p className="text-sm text-red-600">$1 from this takeoff was donated to Tunnel to Towers Foundation 🇺🇸</p>
+        </div>
+      </div>
+
+      {/* AIA Division Legend */}
+      <div className="mt-6 bg-white border border-gray-200 rounded-xl p-4">
+        <h4 className="text-sm font-semibold text-gray-700 mb-3">AIA MasterFormat Divisions</h4>
+        <div className="flex flex-wrap gap-2">
+          {Object.entries(AIA_DIVISIONS).map(([code, div]) => (
+            <span key={code} className={`px-3 py-1 rounded-full text-xs font-medium ${div.color}`}>
+              {div.icon} Div {code}: {div.name}
+            </span>
+          ))}
         </div>
       </div>
     </div>
