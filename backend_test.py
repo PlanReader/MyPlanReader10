@@ -256,9 +256,10 @@ def test_lumber_sizes():
         response = requests.get(f"{API_BASE}/lumber-sizes", timeout=10)
         if response.status_code == 200:
             data = response.json()
-            if "dimensional_lumber" in data and "engineered_lumber" in data:
-                dimensional_count = len(data.get("dimensional_lumber", {}))
-                log_test("Lumber Sizes", "PASS", f"Found {dimensional_count} dimensional lumber sizes (2x4, 2x6, etc.)")
+            if "dimensional" in data and "boards" in data and "sheathing" in data:
+                dimensional_count = len(data.get("dimensional", []))
+                boards_count = len(data.get("boards", []))
+                log_test("Lumber Sizes", "PASS", f"Found {dimensional_count} dimensional lumber sizes, {boards_count} board sizes")
                 return True
             else:
                 log_test("Lumber Sizes", "FAIL", f"Missing lumber categories: {data}")
