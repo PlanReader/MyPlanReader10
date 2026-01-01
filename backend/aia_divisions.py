@@ -249,6 +249,11 @@ OPENINGS_MATERIALS = {
 }
 
 # Division 9 - Finishes
+# ============================================
+# VERIFIED FIELD STANDARDS BY USA CONSTRUCTION INC.
+# These calculations are based on 40 years of industry experience
+# ============================================
+
 FINISHES_MATERIALS = {
     "drywall": [
         {"name": "Drywall 1/2\" 4x8", "size": "4x8", "thickness": "1/2\"", "sqft": 32, "unit": "sheet"},
@@ -259,8 +264,7 @@ FINISHES_MATERIALS = {
         {"name": "Cement Board 1/2\" 3x5", "size": "3x5", "thickness": "1/2\"", "sqft": 15, "unit": "sheet"},
     ],
     "drywall_accessories": [
-        {"name": "Joint Compound (All Purpose)", "coverage": "100 sqft/gallon", "unit": "gallon"},
-        {"name": "Joint Compound Box", "coverage": "480 sqft/48lb box", "unit": "box"},
+        {"name": "Joint Compound 50lb Box", "coverage": "1000 sqft/box", "unit": "50lb box", "lbs_per_sqft": 0.05},
         {"name": "Paper Drywall Tape", "length": "500ft", "unit": "roll"},
         {"name": "Mesh Drywall Tape", "length": "300ft", "unit": "roll"},
         {"name": "Corner Bead Metal", "length": "8ft", "unit": "piece"},
@@ -269,13 +273,14 @@ FINISHES_MATERIALS = {
         {"name": "Drywall Screws 1.625\"", "unit": "lb"},
     ],
     "paint": [
-        {"name": "Interior Primer", "coverage": "350-400 sqft/gallon", "unit": "gallon"},
-        {"name": "Interior Latex Paint (Flat)", "coverage": "350-400 sqft/gallon", "unit": "gallon"},
-        {"name": "Interior Latex Paint (Eggshell)", "coverage": "350-400 sqft/gallon", "unit": "gallon"},
-        {"name": "Interior Latex Paint (Satin)", "coverage": "350-400 sqft/gallon", "unit": "gallon"},
-        {"name": "Interior Latex Paint (Semi-Gloss)", "coverage": "350-400 sqft/gallon", "unit": "gallon"},
-        {"name": "Exterior Primer", "coverage": "300-350 sqft/gallon", "unit": "gallon"},
-        {"name": "Exterior Latex Paint", "coverage": "300-350 sqft/gallon", "unit": "gallon"},
+        # Verified Field Standards: 200 sq ft per gallon for 2 coats (100 sq ft effective per coat)
+        {"name": "Interior Primer", "coverage": 200, "unit": "gallon", "coats": 1},
+        {"name": "Interior Latex Paint (Flat)", "coverage": 200, "unit": "gallon", "coats": 2},
+        {"name": "Interior Latex Paint (Eggshell)", "coverage": 200, "unit": "gallon", "coats": 2},
+        {"name": "Interior Latex Paint (Satin)", "coverage": 200, "unit": "gallon", "coats": 2},
+        {"name": "Interior Latex Paint (Semi-Gloss)", "coverage": 200, "unit": "gallon", "coats": 2},
+        {"name": "Exterior Primer", "coverage": 200, "unit": "gallon", "coats": 1},
+        {"name": "Exterior Latex Paint", "coverage": 200, "unit": "gallon", "coats": 2},
     ],
     "flooring": [
         {"name": "Underlayment Plywood 1/4\"", "size": "4x8", "sqft": 32, "unit": "sheet"},
