@@ -630,7 +630,7 @@ def test_manual_takeoff_field_standards():
             data = response.json()
             takeoff = data.get("takeoff", {})
             materials = takeoff.get("materials", [])
-            summary = takeoff.get("summary", "")
+            summary = takeoff.get("summary", {})
             
             results = []
             
@@ -656,7 +656,7 @@ def test_manual_takeoff_field_standards():
                         log_test("Manual Takeoff - Drywall Sheets", "FAIL", f"Drywall quantity not whole number: {quantity}")
                 
                 # Check joint compound in whole boxes
-                if "joint compound" in description or "mud" in description:
+                if "joint compound" in description or "compound" in description:
                     if "50lb" in unit or "box" in unit:
                         if isinstance(quantity, int) and quantity > 0:
                             log_test("Manual Takeoff - Joint Compound Boxes", "PASS", f"Joint compound: {quantity} whole 50lb boxes ✓")
@@ -685,11 +685,12 @@ def test_manual_takeoff_field_standards():
                     usa_construction_found = True
             
             # Check summary attribution
-            summary_attribution = "Verified Field Standards by USA Construction Inc." in summary
+            summary_attribution_text = summary.get("attribution", "")
+            summary_attribution = "Verified Field Standards by USA Construction Inc." in summary_attribution_text
             if summary_attribution:
                 log_test("Manual Takeoff - Summary Attribution", "PASS", "Summary contains USA Construction Inc. attribution ✓")
             else:
-                log_test("Manual Takeoff - Summary Attribution", "FAIL", f"Missing attribution in summary: {summary}")
+                log_test("Manual Takeoff - Summary Attribution", "FAIL", f"Missing attribution in summary: {summary_attribution_text}")
             
             # Check supplier notes attribution
             if usa_construction_found:
