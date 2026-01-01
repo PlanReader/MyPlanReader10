@@ -2,6 +2,11 @@
 PDF Blueprint Parser
 Extracts text, dimensions, and construction data from PDF blueprints
 Uses PyMuPDF (fitz) for text extraction and Tesseract OCR for scanned images
+
+============================================
+VERIFIED FIELD STANDARDS BY USA CONSTRUCTION INC.
+Serving America Since 1986 - 40 Years of Industry Experience
+============================================
 """
 
 import fitz  # PyMuPDF
@@ -12,6 +17,28 @@ import re
 import math
 from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass, asdict
+
+# ============================================
+# VERIFIED FIELD STANDARDS BY USA CONSTRUCTION INC.
+# ============================================
+FIELD_STANDARDS = {
+    "drywall": {
+        "sqft_per_sheet": 32,  # 4x8 sheet = 32 sq ft
+        "mud_lbs_per_sqft": 0.05,  # 0.05 lbs mud per sq ft
+        "mud_box_size": 50,  # 50lb boxes
+        "attribution": "Verified Field Standards by USA Construction Inc."
+    },
+    "paint": {
+        "sqft_per_gallon": 200,  # 200 sq ft per gallon for 2 coats
+        "coats": 2,
+        "attribution": "Verified Field Standards by USA Construction Inc."
+    },
+    "stucco": {
+        "sqft_per_bag": 22,  # Scratch/brown coat: 22 sq ft per 80lb bag
+        "bag_size": 80,  # 80lb bags
+        "attribution": "Verified Field Standards by USA Construction Inc."
+    }
+}
 
 @dataclass
 class ParsedDimension:
