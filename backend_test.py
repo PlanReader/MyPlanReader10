@@ -298,8 +298,8 @@ def test_concrete_anchors():
         response = requests.get(f"{API_BASE}/concrete-anchors", timeout=10)
         if response.status_code == 200:
             data = response.json()
-            if "anchors" in data and isinstance(data["anchors"], dict):
-                anchors_count = len(data.get("anchors", {}))
+            if "anchors" in data and isinstance(data["anchors"], list):
+                anchors_count = len(data.get("anchors", []))
                 log_test("Concrete Anchors", "PASS", f"Found {anchors_count} anchor types")
                 return True
             else:
