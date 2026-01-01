@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
@@ -13,6 +13,17 @@ import stripe
 import hashlib
 from pymongo import MongoClient
 from dotenv import load_dotenv
+
+# Import AIA divisions and Simpson catalog
+from aia_divisions import (
+    AIA_DIVISIONS, LUMBER_SIZES, FASTENERS, CONCRETE_ANCHORS,
+    MASONRY_MATERIALS, THERMAL_MOISTURE_MATERIALS, OPENINGS_MATERIALS, FINISHES_MATERIALS
+)
+from simpson_catalog import (
+    SIMPSON_CONNECTORS, MITEK_PRODUCTS, CONNECTOR_CONFIGURATIONS,
+    get_all_simpson_products, get_simpson_by_model, get_mitek_by_model
+)
+from pdf_parser import BlueprintParser, MaterialCalculator
 
 # Load environment variables
 load_dotenv()
