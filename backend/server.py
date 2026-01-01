@@ -29,7 +29,11 @@ from pdf_parser import BlueprintParser, MaterialCalculator
 load_dotenv()
 
 # Initialize FastAPI app
-app = FastAPI(title="MyPlanReader API", version="3.0.0")
+app = FastAPI(title="MyPlanReader API", version="4.0.0", description="AIA Division-based Construction Takeoff System")
+
+# Initialize PDF parser and material calculator
+pdf_parser = BlueprintParser()
+material_calculator = MaterialCalculator()
 
 # Stripe configuration
 stripe.api_key = os.environ.get('STRIPE_SECRET_KEY', '')
