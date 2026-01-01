@@ -186,6 +186,11 @@ MASONRY_MATERIALS = {
 }
 
 # Division 7 - Thermal and Moisture Protection
+# ============================================
+# VERIFIED FIELD STANDARDS BY USA CONSTRUCTION INC.
+# These calculations are based on 40 years of industry experience
+# ============================================
+
 THERMAL_MOISTURE_MATERIALS = {
     "insulation": [
         {"name": "R-13 Fiberglass Batt 3.5\"", "r_value": 13, "thickness": "3.5\"", "coverage": "40 sqft/bag", "use": "2x4 walls"},
@@ -215,8 +220,19 @@ THERMAL_MOISTURE_MATERIALS = {
         {"name": "Vinyl Siding", "coverage": "100 sqft/carton", "unit": "carton"},
         {"name": "Fiber Cement Siding (Hardie)", "coverage": "varies", "unit": "piece"},
         {"name": "LP SmartSide Siding", "coverage": "varies", "unit": "piece"},
+    ],
+    # Verified Field Standards: Stucco scratch/brown coat at 22 sq ft per 80lb bag
+    "stucco": [
+        {"name": "Stucco Base Coat (Scratch/Brown) 80lb", "coverage": 22, "unit": "80lb bag", "note": "Verified Field Standard"},
+        {"name": "Stucco Finish Coat 80lb", "coverage": 30, "unit": "80lb bag"},
+        {"name": "Metal Lath 2.5lb Diamond", "coverage": 2.78, "unit": "sheet", "size": "27\"x96\""},
+        {"name": "Stucco Wire 17ga Self-Furring", "coverage": 2.78, "unit": "sheet"},
+        {"name": "Weep Screed 10ft", "length": 10, "unit": "piece"},
+        {"name": "Corner Aid 10ft", "length": 10, "unit": "piece"},
+        {"name": "Casing Bead 10ft", "length": 10, "unit": "piece"},
     ]
 }
+
 
 # Division 8 - Openings
 OPENINGS_MATERIALS = {
