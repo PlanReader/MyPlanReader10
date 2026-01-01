@@ -944,13 +944,26 @@ class MaterialCalculator:
         return materials
     
     def generate_full_takeoff(self, data: BlueprintData) -> Dict:
-        """Generate complete supplier-ready material takeoff"""
+        """
+        Generate complete supplier-ready material takeoff
+        VERIFIED FIELD STANDARDS BY USA CONSTRUCTION INC.
+        Serving America Since 1986
+        """
+        # Division 06 - Wood Framing
         framing = self.calculate_division_06_framing(data)
         connectors = self.calculate_connectors(data)
         fasteners = self.calculate_fasteners(data)
         anchors = self.calculate_anchors(data)
         
-        all_materials = framing + connectors + fasteners + anchors
+        # Division 09 - Finishes (Drywall & Paint)
+        wall_sqft = data.wall_linear_ft * 8  # 8' walls
+        drywall = self.calculate_division_09_drywall(wall_sqft, data.ceiling_sqft)
+        paint = self.calculate_division_09_paint(wall_sqft, data.ceiling_sqft)
+        
+        # Division 07 - Stucco (if exterior)
+        stucco = self.calculate_division_07_stucco(data.exterior_sqft)
+        
+        all_materials = framing + connectors + fasteners + anchors + drywall + paint + stucco
         
         return {
             "project_info": {
@@ -966,7 +979,12 @@ class MaterialCalculator:
             "materials": all_materials,
             "summary": {
                 "total_line_items": len(all_materials),
-                "divisions_included": ["06 - Wood, Plastics, Composites"],
-                "note": "All quantities rounded UP to whole numbers for supplier ordering"
+                "divisions_included": [
+                    "06 - Wood, Plastics, Composites",
+                    "07 - Thermal & Moisture Protection (Stucco)",
+                    "09 - Finishes (Drywall, Paint)"
+                ],
+                "note": "All quantities rounded UP to whole numbers for supplier ordering",
+                "attribution": "Verified Field Standards by USA Construction Inc. - Serving America Since 1986"
             }
         }
