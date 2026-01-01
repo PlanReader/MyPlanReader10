@@ -1,12 +1,27 @@
 # Test Results - MyPlanReader™
 
 ## Application Overview
-Construction takeoff app using AIA MasterFormat divisions. Users upload PDF blueprints, select trades with dynamic pricing, pay via Stripe, and receive supplier-ready material lists with whole-unit quantities. Now includes:
-- AIA Divisions 3, 4, 6, 7, 8, 9
-- Simpson Strong-Tie connector catalog
-- MiTek product catalog
-- PDF parsing with OCR
-- Supplier-ready export format
+Construction takeoff app using AIA MasterFormat divisions. Users upload PDF blueprints, select trades with dynamic pricing, pay via Stripe, and receive supplier-ready material lists with whole-unit quantities.
+
+## Current Test Focus
+1. Division 09 field standards (Drywall: 32 sqft/sheet, 0.05 lbs mud/sqft, Paint: 200 sqft/gallon, Stucco: 22 sqft/bag)
+2. USA Construction Inc. branding throughout app
+3. Session security with 10-minute timeout and 2-minute warning
+4. 1986 Legacy Badge near checkout
+
+## Verified Field Standards - USA Construction Inc.
+- Drywall: 32 sq ft per 4x8 sheet
+- Joint Compound: 0.05 lbs per sq ft, output in 50lb Boxes
+- Paint: 200 sq ft per gallon for 2 coats, output in whole Gallons
+- Stucco scratch/brown coat: 22 sq ft per 80lb bag, output in whole Bags
+
+## Session Security Protocol
+- Inactivity timeout: 10 minutes
+- Warning modal at 8 minutes with countdown
+- Auto-purge at 10 minutes
+
+## Incorporate User Feedback
+- The donation ($1 to Tunnel to Towers) comes from MyPlanReader's proceeds, NOT an extra charge to users
 
 backend:
   - task: "Health Check API"
