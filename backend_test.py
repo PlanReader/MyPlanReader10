@@ -538,35 +538,45 @@ def test_division_09_field_standards():
             
             # Check for drywall standards
             materials = data.get("materials", {})
-            drywall = materials.get("drywall", {})
-            paint = materials.get("paint", {})
+            drywall_list = materials.get("drywall", [])
+            drywall_accessories = materials.get("drywall_accessories", [])
+            paint_list = materials.get("paint", [])
             
-            # Verify drywall sqft per sheet = 32
-            drywall_sqft = drywall.get("sqft_per_sheet", 0)
-            if drywall_sqft == 32:
-                log_test("Division 09 - Drywall Standards", "PASS", f"Drywall: {drywall_sqft} sqft per sheet ✓")
-                results.append(True)
-            else:
-                log_test("Division 09 - Drywall Standards", "FAIL", f"Expected 32 sqft per sheet, got {drywall_sqft}")
-                results.append(False)
+            # Verify drywall sqft per sheet = 32 (check first standard drywall sheet)
+            drywall_found = False
+            for drywall_item in drywall_list:
+                if drywall_item.get("sqft") == 32 and "4x8" in drywall_item.get("size", ""):
+                    log_test("Division 09 - Drywall Standards", "PASS", f"Drywall: {drywall_item.get('sqft')} sqft per sheet ✓")
+                    drywall_found = True
+                    break
+            
+            if not drywall_found:
+                log_test("Division 09 - Drywall Standards", "FAIL", "Expected 32 sqft per 4x8 sheet not found")
+            results.append(drywall_found)
             
             # Verify mud lbs per sqft = 0.05
-            mud_lbs = drywall.get("mud_lbs_per_sqft", 0)
-            if mud_lbs == 0.05:
-                log_test("Division 09 - Joint Compound Standards", "PASS", f"Joint compound: {mud_lbs} lbs per sqft ✓")
-                results.append(True)
-            else:
-                log_test("Division 09 - Joint Compound Standards", "FAIL", f"Expected 0.05 lbs per sqft, got {mud_lbs}")
-                results.append(False)
+            mud_found = False
+            for accessory in drywall_accessories:
+                if accessory.get("lbs_per_sqft") == 0.05:
+                    log_test("Division 09 - Joint Compound Standards", "PASS", f"Joint compound: {accessory.get('lbs_per_sqft')} lbs per sqft ✓")
+                    mud_found = True
+                    break
+            
+            if not mud_found:
+                log_test("Division 09 - Joint Compound Standards", "FAIL", "Expected 0.05 lbs per sqft not found")
+            results.append(mud_found)
             
             # Verify paint coverage = 200 sqft/gallon
-            paint_coverage = paint.get("coverage_sqft_per_gallon", 0)
-            if paint_coverage == 200:
-                log_test("Division 09 - Paint Standards", "PASS", f"Paint: {paint_coverage} sqft per gallon ✓")
-                results.append(True)
-            else:
-                log_test("Division 09 - Paint Standards", "FAIL", f"Expected 200 sqft per gallon, got {paint_coverage}")
-                results.append(False)
+            paint_found = False
+            for paint_item in paint_list:
+                if paint_item.get("coverage") == 200:
+                    log_test("Division 09 - Paint Standards", "PASS", f"Paint: {paint_item.get('coverage')} sqft per gallon ✓")
+                    paint_found = True
+                    break
+            
+            if not paint_found:
+                log_test("Division 09 - Paint Standards", "FAIL", "Expected 200 sqft per gallon not found")
+            results.append(paint_found)
                 
         else:
             log_test("Division 09 Materials", "FAIL", f"HTTP {response.status_code}: {response.text}")
@@ -581,16 +591,19 @@ def test_division_09_field_standards():
         if response.status_code == 200:
             data = response.json()
             materials = data.get("materials", {})
-            stucco = materials.get("stucco", {})
+            stucco_list = materials.get("stucco", [])
             
             # Verify stucco coverage = 22 sqft/bag
-            stucco_coverage = stucco.get("coverage_sqft_per_bag", 0)
-            if stucco_coverage == 22:
-                log_test("Division 07 - Stucco Standards", "PASS", f"Stucco: {stucco_coverage} sqft per 80lb bag ✓")
-                results.append(True)
-            else:
-                log_test("Division 07 - Stucco Standards", "FAIL", f"Expected 22 sqft per bag, got {stucco_coverage}")
-                results.append(False)
+            stucco_found = False
+            for stucco_item in stucco_list:
+                if stucco_item.get("coverage") == 22 and "80lb bag" in stucco_item.get("unit", ""):
+                    log_test("Division 07 - Stucco Standards", "PASS", f"Stucco: {stucco_item.get('coverage')} sqft per 80lb bag ✓")
+                    stucco_found = True
+                    break
+            
+            if not stucco_found:
+                log_test("Division 07 - Stucco Standards", "FAIL", "Expected 22 sqft per 80lb bag not found")
+            results.append(stucco_found)
         else:
             log_test("Division 07 - Stucco Standards", "FAIL", f"HTTP {response.status_code}: {response.text}")
             results.append(False)
