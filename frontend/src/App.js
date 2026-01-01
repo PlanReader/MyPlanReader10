@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
 import { loadStripe } from '@stripe/stripe-js';
 import './App.css';
@@ -33,10 +33,16 @@ import {
   User,
   LogOut,
   Heart,
-  Flag
+  Flag,
+  Award,
+  Timer
 } from 'lucide-react';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+
+// Session timeout configuration (in milliseconds)
+const SESSION_TIMEOUT = 10 * 60 * 1000; // 10 minutes
+const SESSION_WARNING = 8 * 60 * 1000; // 8 minutes (2-minute warning)
 
 // Priority and Status configurations
 const PRIORITIES = {
@@ -68,6 +74,51 @@ const formatMaterialName = (name) => {
   return name.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
 };
 
+// Session Timeout Warning Modal Component
+function SessionWarningModal({ onKeepActive, timeRemaining }) {
+  return (
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+      <div className="bg-white rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl border-4 border-red-500">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+            <AlertCircle className="w-7 h-7 text-red-600" />
+          </div>
+          <h2 className="text-2xl font-bold text-red-700">Security Alert</h2>
+        </div>
+        
+        <p className="text-gray-700 mb-4 text-lg">
+          Your session will expire and <strong>all data will be purged</strong> in{' '}
+          <span className="text-red-600 font-bold">{Math.ceil(timeRemaining / 1000)} seconds</span> for your protection.
+        </p>
+        
+        <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-6">
+          <p className="text-sm text-red-700 flex items-center gap-2">
+            <Timer className="w-4 h-4" />
+            Sessions are automatically erased after 10 minutes of inactivity for your protection.
+          </p>
+        </div>
+        
+        <button
+          onClick={onKeepActive}
+          className="w-full py-4 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-xl transition-colors text-lg"
+        >
+          Keep Session Active
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// 1986 Legacy Badge Component
+function LegacyBadge() {
+  return (
+    <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 border border-amber-300 rounded-lg">
+      <Award className="w-4 h-4 text-amber-600" />
+      <span className="text-xs font-semibold text-amber-800">Est. 1986 • Expert-Verified Math</span>
+    </div>
+  );
+}
+
 // Security Badge Component
 function SecurityBadge() {
   return (
@@ -78,8 +129,8 @@ function SecurityBadge() {
       </div>
       <ul className="space-y-2 text-sm text-gray-600">
         <li className="flex items-start gap-2">
-          <Lock className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
-          <span><strong>Bank-Level Encryption:</strong> All blueprint data and personal information are encrypted at rest and in transit.</span>
+          <Award className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
+          <span><strong>40 Years of Trust:</strong> Your data is backed by USA Construction Inc., an industry leader with a 40-year reputation for integrity and precision.</span>
         </li>
         <li className="flex items-start gap-2">
           <CreditCard className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
@@ -88,6 +139,10 @@ function SecurityBadge() {
         <li className="flex items-start gap-2">
           <Shield className="w-4 h-4 text-purple-600 mt-0.5 flex-shrink-0" />
           <span><strong>Privacy First:</strong> Your plans are yours. We use them strictly for your takeoff and never share your project data with third parties.</span>
+        </li>
+        <li className="flex items-start gap-2">
+          <Timer className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+          <span><strong>Auto-Purge:</strong> Sessions are automatically erased after 10 minutes of inactivity for your protection.</span>
         </li>
       </ul>
     </div>
