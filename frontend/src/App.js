@@ -946,6 +946,11 @@ function UploadPortal({ user, onProcessed, onRequireAuth }) {
             <span>Bank-Level Encryption</span>
           </div>
           
+          {/* 1986 Legacy Badge */}
+          <div className="flex justify-center mb-3">
+            <LegacyBadge />
+          </div>
+          
           <button
             onClick={handleCheckout}
             disabled={!selectedFile || isCheckingOut}
