@@ -365,14 +365,190 @@ class BlueprintParser:
 
 
 class MaterialCalculator:
-    """Calculate material quantities based on parsed blueprint data"""
+    """
+    Calculate material quantities based on parsed blueprint data
+    
+    ============================================
+    VERIFIED FIELD STANDARDS BY USA CONSTRUCTION INC.
+    Serving America Since 1986 - 40 Years of Industry Experience
+    ============================================
+    """
     
     def __init__(self):
-        pass
+        # Verified Field Standards by USA Construction Inc.
+        self.DRYWALL_SQFT_PER_SHEET = 32  # 4x8 sheet = 32 sq ft
+        self.DRYWALL_MUD_LBS_PER_SQFT = 0.05  # 0.05 lbs mud per sq ft
+        self.DRYWALL_MUD_BOX_SIZE = 50  # 50lb boxes
+        
+        self.PAINT_SQFT_PER_GALLON = 200  # 200 sq ft per gallon for 2 coats
+        self.PAINT_COATS = 2
+        
+        self.STUCCO_SQFT_PER_BAG = 22  # Scratch/brown coat: 22 sq ft per 80lb bag
+        self.STUCCO_BAG_SIZE = 80  # 80lb bags
+    
+    def calculate_division_09_drywall(self, wall_sqft: float, ceiling_sqft: float) -> List[Dict]:
+        """
+        Calculate Division 9 - Drywall materials
+        VERIFIED FIELD STANDARDS BY USA CONSTRUCTION INC.
+        - 32 sq ft per 4x8 sheet
+        - 0.05 lbs mud per sq ft
+        - Output in whole Sheets and 50lb Boxes
+        """
+        materials = []
+        order_line = 400
+        
+        total_sqft = wall_sqft + ceiling_sqft
+        
+        # Drywall sheets (32 sq ft per 4x8 sheet + 10% waste)
+        sheets_needed = math.ceil(total_sqft / self.DRYWALL_SQFT_PER_SHEET * 1.1)
+        materials.append({
+            "order_line": order_line,
+            "description": "Drywall 1/2\" 4x8 Sheets",
+            "lumber_size": "4x8",
+            "quantity": sheets_needed,
+            "length": "8'",
+            "unit": "Sheets",
+            "division": "09",
+            "subcategory": "09 29 00",
+            "supplier_notes": "Verified Field Standards: 32 sq ft per sheet - USA Construction Inc."
+        })
+        order_line += 1
+        
+        # Joint compound (0.05 lbs per sq ft, in 50lb boxes)
+        mud_lbs_needed = total_sqft * self.DRYWALL_MUD_LBS_PER_SQFT
+        mud_boxes = math.ceil(mud_lbs_needed / self.DRYWALL_MUD_BOX_SIZE)
+        materials.append({
+            "order_line": order_line,
+            "description": "Joint Compound (All Purpose)",
+            "lumber_size": "N/A",
+            "quantity": mud_boxes,
+            "length": "N/A",
+            "unit": "50lb Boxes",
+            "division": "09",
+            "subcategory": "09 29 00",
+            "supplier_notes": "Verified Field Standards: 0.05 lbs/sq ft - USA Construction Inc."
+        })
+        order_line += 1
+        
+        # Drywall tape (1 roll per 500 sq ft)
+        tape_rolls = math.ceil(total_sqft / 500)
+        materials.append({
+            "order_line": order_line,
+            "description": "Paper Drywall Tape 500ft Roll",
+            "lumber_size": "N/A",
+            "quantity": tape_rolls,
+            "length": "500ft",
+            "unit": "Rolls",
+            "division": "09",
+            "subcategory": "09 29 00",
+            "supplier_notes": "For finishing joints and corners"
+        })
+        
+        return materials
+    
+    def calculate_division_09_paint(self, wall_sqft: float, ceiling_sqft: float) -> List[Dict]:
+        """
+        Calculate Division 9 - Paint materials
+        VERIFIED FIELD STANDARDS BY USA CONSTRUCTION INC.
+        - 200 sq ft per gallon for 2 coats
+        - Output in whole Gallons
+        """
+        materials = []
+        order_line = 420
+        
+        total_sqft = wall_sqft + ceiling_sqft
+        
+        # Primer (1 coat at 200 sq ft/gallon)
+        primer_gallons = math.ceil(total_sqft / self.PAINT_SQFT_PER_GALLON)
+        materials.append({
+            "order_line": order_line,
+            "description": "Interior Primer",
+            "lumber_size": "N/A",
+            "quantity": primer_gallons,
+            "length": "N/A",
+            "unit": "Gallons",
+            "division": "09",
+            "subcategory": "09 90 00",
+            "supplier_notes": "Verified Field Standards: 200 sq ft/gallon - USA Construction Inc."
+        })
+        order_line += 1
+        
+        # Paint (2 coats at 200 sq ft/gallon total coverage)
+        paint_gallons = math.ceil(total_sqft / self.PAINT_SQFT_PER_GALLON)
+        materials.append({
+            "order_line": order_line,
+            "description": "Interior Latex Paint (Eggshell)",
+            "lumber_size": "N/A",
+            "quantity": paint_gallons,
+            "length": "N/A",
+            "unit": "Gallons",
+            "division": "09",
+            "subcategory": "09 90 00",
+            "supplier_notes": "Verified Field Standards: 200 sq ft/gallon for 2 coats - USA Construction Inc."
+        })
+        
+        return materials
+    
+    def calculate_division_07_stucco(self, exterior_sqft: float) -> List[Dict]:
+        """
+        Calculate Division 7 - Stucco materials
+        VERIFIED FIELD STANDARDS BY USA CONSTRUCTION INC.
+        - Scratch/brown coat: 22 sq ft per 80lb bag
+        - Output in whole Bags
+        """
+        materials = []
+        order_line = 440
+        
+        # Stucco base coat (scratch/brown) - 22 sq ft per 80lb bag + 10% waste
+        base_bags = math.ceil(exterior_sqft / self.STUCCO_SQFT_PER_BAG * 1.1)
+        materials.append({
+            "order_line": order_line,
+            "description": "Stucco Base Coat (Scratch/Brown)",
+            "lumber_size": "N/A",
+            "quantity": base_bags,
+            "length": "N/A",
+            "unit": "80lb Bags",
+            "division": "07",
+            "subcategory": "07 24 00",
+            "supplier_notes": "Verified Field Standards: 22 sq ft per bag - USA Construction Inc."
+        })
+        order_line += 1
+        
+        # Stucco finish coat (30 sq ft per 80lb bag)
+        finish_bags = math.ceil(exterior_sqft / 30 * 1.1)
+        materials.append({
+            "order_line": order_line,
+            "description": "Stucco Finish Coat",
+            "lumber_size": "N/A",
+            "quantity": finish_bags,
+            "length": "N/A",
+            "unit": "80lb Bags",
+            "division": "07",
+            "subcategory": "07 24 00",
+            "supplier_notes": "Finish coat application"
+        })
+        order_line += 1
+        
+        # Metal lath (2.78 sq ft per sheet 27"x96")
+        lath_sheets = math.ceil(exterior_sqft / 18 * 1.1)  # 18 sq ft effective coverage
+        materials.append({
+            "order_line": order_line,
+            "description": "Metal Lath 2.5lb Diamond 27x96",
+            "lumber_size": "27\"x96\"",
+            "quantity": lath_sheets,
+            "length": "96\"",
+            "unit": "Sheets",
+            "division": "07",
+            "subcategory": "07 24 00",
+            "supplier_notes": "Self-furring diamond mesh lath"
+        })
+        
+        return materials
     
     def calculate_division_06_framing(self, data: BlueprintData) -> List[Dict]:
         """
         Calculate Division 6 - Wood Framing materials
+        VERIFIED FIELD STANDARDS BY USA CONSTRUCTION INC.
         Returns supplier-ready material list with all quantities rounded UP
         """
         materials = []
