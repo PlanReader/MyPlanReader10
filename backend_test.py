@@ -522,6 +522,207 @@ def test_division_materials():
     
     return results
 
+# ============================================
+# DIVISION 09 FIELD STANDARDS TESTS
+# ============================================
+
+def test_division_09_field_standards():
+    """Test Division 09 Field Standards - Drywall, Paint, Stucco"""
+    results = []
+    
+    # Test Division 09 Materials API
+    try:
+        response = requests.get(f"{API_BASE}/materials/division-09", timeout=10)
+        if response.status_code == 200:
+            data = response.json()
+            
+            # Check for drywall standards
+            materials = data.get("materials", {})
+            drywall = materials.get("drywall", {})
+            paint = materials.get("paint", {})
+            
+            # Verify drywall sqft per sheet = 32
+            drywall_sqft = drywall.get("sqft_per_sheet", 0)
+            if drywall_sqft == 32:
+                log_test("Division 09 - Drywall Standards", "PASS", f"Drywall: {drywall_sqft} sqft per sheet ✓")
+                results.append(True)
+            else:
+                log_test("Division 09 - Drywall Standards", "FAIL", f"Expected 32 sqft per sheet, got {drywall_sqft}")
+                results.append(False)
+            
+            # Verify mud lbs per sqft = 0.05
+            mud_lbs = drywall.get("mud_lbs_per_sqft", 0)
+            if mud_lbs == 0.05:
+                log_test("Division 09 - Joint Compound Standards", "PASS", f"Joint compound: {mud_lbs} lbs per sqft ✓")
+                results.append(True)
+            else:
+                log_test("Division 09 - Joint Compound Standards", "FAIL", f"Expected 0.05 lbs per sqft, got {mud_lbs}")
+                results.append(False)
+            
+            # Verify paint coverage = 200 sqft/gallon
+            paint_coverage = paint.get("coverage_sqft_per_gallon", 0)
+            if paint_coverage == 200:
+                log_test("Division 09 - Paint Standards", "PASS", f"Paint: {paint_coverage} sqft per gallon ✓")
+                results.append(True)
+            else:
+                log_test("Division 09 - Paint Standards", "FAIL", f"Expected 200 sqft per gallon, got {paint_coverage}")
+                results.append(False)
+                
+        else:
+            log_test("Division 09 Materials", "FAIL", f"HTTP {response.status_code}: {response.text}")
+            results.extend([False, False, False])
+    except Exception as e:
+        log_test("Division 09 Materials", "FAIL", f"Exception: {str(e)}")
+        results.extend([False, False, False])
+    
+    # Test Division 07 for Stucco Standards
+    try:
+        response = requests.get(f"{API_BASE}/materials/division-07", timeout=10)
+        if response.status_code == 200:
+            data = response.json()
+            materials = data.get("materials", {})
+            stucco = materials.get("stucco", {})
+            
+            # Verify stucco coverage = 22 sqft/bag
+            stucco_coverage = stucco.get("coverage_sqft_per_bag", 0)
+            if stucco_coverage == 22:
+                log_test("Division 07 - Stucco Standards", "PASS", f"Stucco: {stucco_coverage} sqft per 80lb bag ✓")
+                results.append(True)
+            else:
+                log_test("Division 07 - Stucco Standards", "FAIL", f"Expected 22 sqft per bag, got {stucco_coverage}")
+                results.append(False)
+        else:
+            log_test("Division 07 - Stucco Standards", "FAIL", f"HTTP {response.status_code}: {response.text}")
+            results.append(False)
+    except Exception as e:
+        log_test("Division 07 - Stucco Standards", "FAIL", f"Exception: {str(e)}")
+        results.append(False)
+    
+    return results
+
+def test_manual_takeoff_field_standards():
+    """Test Manual Takeoff with Field Standards Verification"""
+    try:
+        takeoff_data = {
+            "total_sqft": 2400,
+            "wall_linear_ft": 200,
+            "num_stories": 1,
+            "foundation_type": "slab",
+            "num_doors": 8,
+            "num_windows": 14
+        }
+        
+        response = requests.post(f"{API_BASE}/manual-takeoff", json=takeoff_data, timeout=15)
+        if response.status_code == 200:
+            data = response.json()
+            takeoff = data.get("takeoff", {})
+            materials = takeoff.get("materials", [])
+            summary = takeoff.get("summary", "")
+            
+            results = []
+            
+            # Check for whole unit outputs
+            drywall_found = False
+            joint_compound_found = False
+            paint_found = False
+            stucco_found = False
+            usa_construction_found = False
+            
+            for material in materials:
+                description = material.get("description", "").lower()
+                unit = material.get("unit", "").lower()
+                quantity = material.get("quantity", 0)
+                supplier_notes = material.get("supplier_notes", "")
+                
+                # Check drywall in whole sheets
+                if "drywall" in description and "sheet" in unit:
+                    if isinstance(quantity, int) and quantity > 0:
+                        log_test("Manual Takeoff - Drywall Sheets", "PASS", f"Drywall: {quantity} whole sheets ✓")
+                        drywall_found = True
+                    else:
+                        log_test("Manual Takeoff - Drywall Sheets", "FAIL", f"Drywall quantity not whole number: {quantity}")
+                
+                # Check joint compound in whole boxes
+                if "joint compound" in description or "mud" in description:
+                    if "50lb" in unit or "box" in unit:
+                        if isinstance(quantity, int) and quantity > 0:
+                            log_test("Manual Takeoff - Joint Compound Boxes", "PASS", f"Joint compound: {quantity} whole 50lb boxes ✓")
+                            joint_compound_found = True
+                        else:
+                            log_test("Manual Takeoff - Joint Compound Boxes", "FAIL", f"Joint compound quantity not whole number: {quantity}")
+                
+                # Check paint in whole gallons
+                if "paint" in description and "gallon" in unit:
+                    if isinstance(quantity, int) and quantity > 0:
+                        log_test("Manual Takeoff - Paint Gallons", "PASS", f"Paint: {quantity} whole gallons ✓")
+                        paint_found = True
+                    else:
+                        log_test("Manual Takeoff - Paint Gallons", "FAIL", f"Paint quantity not whole number: {quantity}")
+                
+                # Check stucco in whole bags
+                if "stucco" in description and ("80lb" in unit or "bag" in unit):
+                    if isinstance(quantity, int) and quantity > 0:
+                        log_test("Manual Takeoff - Stucco Bags", "PASS", f"Stucco: {quantity} whole 80lb bags ✓")
+                        stucco_found = True
+                    else:
+                        log_test("Manual Takeoff - Stucco Bags", "FAIL", f"Stucco quantity not whole number: {quantity}")
+                
+                # Check USA Construction Inc. attribution
+                if "USA Construction Inc." in supplier_notes:
+                    usa_construction_found = True
+            
+            # Check summary attribution
+            summary_attribution = "Verified Field Standards by USA Construction Inc." in summary
+            if summary_attribution:
+                log_test("Manual Takeoff - Summary Attribution", "PASS", "Summary contains USA Construction Inc. attribution ✓")
+            else:
+                log_test("Manual Takeoff - Summary Attribution", "FAIL", f"Missing attribution in summary: {summary}")
+            
+            # Check supplier notes attribution
+            if usa_construction_found:
+                log_test("Manual Takeoff - Supplier Attribution", "PASS", "Materials contain USA Construction Inc. attribution ✓")
+            else:
+                log_test("Manual Takeoff - Supplier Attribution", "FAIL", "Missing USA Construction Inc. in supplier notes")
+            
+            results = [drywall_found, joint_compound_found, paint_found, stucco_found, usa_construction_found, summary_attribution]
+            
+            project_id = data.get("project_id")
+            return all(results), project_id
+        else:
+            log_test("Manual Takeoff Field Standards", "FAIL", f"HTTP {response.status_code}: {response.text}")
+            return False, None
+    except Exception as e:
+        log_test("Manual Takeoff Field Standards", "FAIL", f"Exception: {str(e)}")
+        return False, None
+
+def test_session_security():
+    """Test Session Security - POST /api/session/purge"""
+    try:
+        response = requests.post(f"{API_BASE}/session/purge", timeout=10)
+        if response.status_code == 200:
+            data = response.json()
+            required_fields = ["success", "message", "timeout_minutes"]
+            if all(field in data for field in required_fields):
+                success = data.get("success")
+                timeout_minutes = data.get("timeout_minutes")
+                message = data.get("message")
+                
+                if success and timeout_minutes == 10:
+                    log_test("Session Security", "PASS", f"Session purge successful, 10-minute timeout confirmed ✓")
+                    return True
+                else:
+                    log_test("Session Security", "FAIL", f"Unexpected response: success={success}, timeout={timeout_minutes}")
+                    return False
+            else:
+                log_test("Session Security", "FAIL", f"Missing required fields: {data}")
+                return False
+        else:
+            log_test("Session Security", "FAIL", f"HTTP {response.status_code}: {response.text}")
+            return False
+    except Exception as e:
+        log_test("Session Security", "FAIL", f"Exception: {str(e)}")
+        return False
+
 def main():
     """Run all tests"""
     print(f"{Colors.BOLD}{Colors.BLUE}MyPlanReader Backend API Test Suite{Colors.ENDC}")
