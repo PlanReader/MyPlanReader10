@@ -1,3 +1,13 @@
+# Test Results - MyPlanReader™
+
+## Application Overview
+Construction takeoff app using AIA MasterFormat divisions. Users upload PDF blueprints, select trades with dynamic pricing, pay via Stripe, and receive supplier-ready material lists with whole-unit quantities. Now includes:
+- AIA Divisions 3, 4, 6, 7, 8, 9
+- Simpson Strong-Tie connector catalog
+- MiTek product catalog
+- PDF parsing with OCR
+- Supplier-ready export format
+
 backend:
   - task: "Health Check API"
     implemented: true
