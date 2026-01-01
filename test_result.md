@@ -376,6 +376,7 @@ test_plan:
     - "Manual Takeoff Field Standards"
     - "Session Security API"
     - "Division 07 Stucco Standards"
+    - "Frontend Testing"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
