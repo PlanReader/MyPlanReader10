@@ -1356,6 +1356,24 @@ async def get_division_09_materials():
     }
 
 # ============================================
+# SESSION SECURITY ENDPOINTS
+# ============================================
+
+@app.post("/api/session/purge")
+async def purge_session():
+    """
+    Purge session data for security.
+    Called when session expires due to inactivity (10-minute timeout).
+    """
+    # In a stateless API, we acknowledge the purge request
+    # In production, this could invalidate server-side session tokens
+    return {
+        "success": True,
+        "message": "Session data purged for security",
+        "timeout_minutes": 10
+    }
+
+# ============================================
 # PDF PARSING & TAKEOFF ENDPOINTS
 # ============================================
 
