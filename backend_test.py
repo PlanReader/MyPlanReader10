@@ -817,6 +817,19 @@ def main():
     division_results = test_division_materials()
     results.extend(division_results)
     
+    print(f"\n{Colors.BOLD}{Colors.BLUE}=== DIVISION 09 FIELD STANDARDS TESTS ==={Colors.ENDC}")
+    
+    # Test Division 09 Field Standards
+    field_standards_results = test_division_09_field_standards()
+    results.extend(field_standards_results)
+    
+    # Test Manual Takeoff with Field Standards
+    takeoff_standards_result, standards_project_id = test_manual_takeoff_field_standards()
+    results.append(takeoff_standards_result)
+    
+    # Test Session Security
+    results.append(test_session_security())
+    
     # Summary
     print("=" * 60)
     passed = sum(1 for r in results if r is True)
@@ -827,10 +840,10 @@ def main():
     print(f"Failed: {Colors.RED}{total - passed}{Colors.ENDC}/{total}")
     
     if passed == total:
-        print(f"{Colors.GREEN}{Colors.BOLD}✅ All tests passed! AIA Division and Simpson catalog endpoints working correctly.{Colors.ENDC}")
+        print(f"{Colors.GREEN}{Colors.BOLD}✅ All tests passed! Division 09 field standards and session security working correctly.{Colors.ENDC}")
         return 0
     else:
-        print(f"{Colors.RED}{Colors.BOLD}❌ Some tests failed. Check the API endpoints and catalog data.{Colors.ENDC}")
+        print(f"{Colors.RED}{Colors.BOLD}❌ Some tests failed. Check the Division 09 field standards and session security endpoints.{Colors.ENDC}")
         return 1
 
 if __name__ == "__main__":
