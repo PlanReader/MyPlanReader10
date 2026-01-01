@@ -567,6 +567,50 @@ def main():
     # Test 7: Stripe Configuration
     results.append(test_stripe_config())
     
+    print(f"\n{Colors.BOLD}{Colors.BLUE}=== NEW AIA DIVISION & SIMPSON CATALOG TESTS ==={Colors.ENDC}")
+    
+    # Test 8: AIA Divisions
+    results.append(test_aia_divisions())
+    
+    # Test 9: AIA Division Detail
+    results.append(test_aia_division_detail())
+    
+    # Test 10: Lumber Sizes
+    results.append(test_lumber_sizes())
+    
+    # Test 11: Fasteners
+    results.append(test_fasteners())
+    
+    # Test 12: Concrete Anchors
+    results.append(test_concrete_anchors())
+    
+    # Test 13: Simpson Catalog
+    results.append(test_simpson_catalog())
+    
+    # Test 14: Simpson Product H2.5A
+    results.append(test_simpson_product_h25a())
+    
+    # Test 15: Simpson Product LUS210
+    results.append(test_simpson_product_lus210())
+    
+    # Test 16: MiTek Catalog
+    results.append(test_mitek_catalog())
+    
+    # Test 17: Manual Takeoff
+    takeoff_result, project_id = test_manual_takeoff()
+    results.append(takeoff_result)
+    
+    # Test 18: Get Takeoff (requires project_id from manual takeoff)
+    if project_id:
+        results.append(test_get_takeoff(project_id))
+    else:
+        log_test("Get Takeoff Results", "SKIP", "No project_id available")
+        results.append(False)
+    
+    # Test 19-21: Division Materials
+    division_results = test_division_materials()
+    results.extend(division_results)
+    
     # Summary
     print("=" * 60)
     passed = sum(1 for r in results if r is True)
@@ -577,10 +621,10 @@ def main():
     print(f"Failed: {Colors.RED}{total - passed}{Colors.ENDC}/{total}")
     
     if passed == total:
-        print(f"{Colors.GREEN}{Colors.BOLD}✅ All tests passed! MongoDB connection fix is working correctly.{Colors.ENDC}")
+        print(f"{Colors.GREEN}{Colors.BOLD}✅ All tests passed! AIA Division and Simpson catalog endpoints working correctly.{Colors.ENDC}")
         return 0
     else:
-        print(f"{Colors.RED}{Colors.BOLD}❌ Some tests failed. Check the MongoDB connection and API endpoints.{Colors.ENDC}")
+        print(f"{Colors.RED}{Colors.BOLD}❌ Some tests failed. Check the API endpoints and catalog data.{Colors.ENDC}")
         return 1
 
 if __name__ == "__main__":
