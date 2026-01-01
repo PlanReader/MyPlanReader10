@@ -160,7 +160,7 @@ function DonationImpact() {
       </div>
       <p className="text-sm text-gray-700 mb-2">
         <strong>$1 from every single-use takeoff</strong> is donated directly to{' '}
-        <span className="text-blue-700 font-semibold">Tunnel to Towers Foundation</span>.
+        <span className="text-blue-700 font-semibold">Tunnel to Towers Foundation</span> from MyPlanReader's proceeds.
       </p>
       <p className="text-xs text-gray-600 flex items-center gap-1">
         <Heart className="w-3 h-3 text-red-500" />
@@ -176,11 +176,109 @@ function App() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authMode, setAuthMode] = useState('signin'); // 'signin' or 'signup'
   
+  // Session security state
+  const [showSessionWarning, setShowSessionWarning] = useState(false);
+  const [sessionTimeRemaining, setSessionTimeRemaining] = useState(SESSION_TIMEOUT - SESSION_WARNING);
+  const lastActivityRef = useRef(Date.now());
+  const warningTimeoutRef = useRef(null);
+  const purgeTimeoutRef = useRef(null);
+  const countdownRef = useRef(null);
+  
   // App state
   const [projects, setProjects] = useState([]);
   const [currentProject, setCurrentProject] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeView, setActiveView] = useState('upload');
+
+  // Reset activity timer
+  const resetActivityTimer = useCallback(() => {
+    lastActivityRef.current = Date.now();
+    setShowSessionWarning(false);
+    
+    // Clear existing timeouts
+    if (warningTimeoutRef.current) clearTimeout(warningTimeoutRef.current);
+    if (purgeTimeoutRef.current) clearTimeout(purgeTimeoutRef.current);
+    if (countdownRef.current) clearInterval(countdownRef.current);
+    
+    // Set warning at 8 minutes
+    warningTimeoutRef.current = setTimeout(() => {
+      setShowSessionWarning(true);
+      setSessionTimeRemaining(SESSION_TIMEOUT - SESSION_WARNING);
+      
+      // Start countdown
+      countdownRef.current = setInterval(() => {
+        setSessionTimeRemaining(prev => {
+          if (prev <= 1000) {
+            clearInterval(countdownRef.current);
+            return 0;
+          }
+          return prev - 1000;
+        });
+      }, 1000);
+    }, SESSION_WARNING);
+    
+    // Set purge at 10 minutes
+    purgeTimeoutRef.current = setTimeout(() => {
+      handleSessionPurge();
+    }, SESSION_TIMEOUT);
+  }, []);
+
+  // Handle session purge - logout and clear all data
+  const handleSessionPurge = useCallback(() => {
+    // Clear all timeouts
+    if (warningTimeoutRef.current) clearTimeout(warningTimeoutRef.current);
+    if (purgeTimeoutRef.current) clearTimeout(purgeTimeoutRef.current);
+    if (countdownRef.current) clearInterval(countdownRef.current);
+    
+    // Clear user data
+    setUser(null);
+    setProjects([]);
+    setCurrentProject(null);
+    localStorage.removeItem('myplanreader_user');
+    
+    // Reset UI
+    setShowSessionWarning(false);
+    setActiveView('upload');
+    
+    // Notify server to purge session data
+    axios.post(`${BACKEND_URL}/api/session/purge`).catch(() => {});
+    
+    alert('Your session has expired and all data has been purged for your protection.');
+  }, []);
+
+  // Keep session active (dismiss warning)
+  const handleKeepSessionActive = useCallback(() => {
+    resetActivityTimer();
+  }, [resetActivityTimer]);
+
+  // Setup activity listeners
+  useEffect(() => {
+    const activityEvents = ['mousedown', 'mousemove', 'keydown', 'scroll', 'touchstart', 'click'];
+    
+    const handleActivity = () => {
+      if (!showSessionWarning) {
+        resetActivityTimer();
+      }
+    };
+    
+    activityEvents.forEach(event => {
+      document.addEventListener(event, handleActivity, { passive: true });
+    });
+    
+    // Initial timer setup
+    if (user) {
+      resetActivityTimer();
+    }
+    
+    return () => {
+      activityEvents.forEach(event => {
+        document.removeEventListener(event, handleActivity);
+      });
+      if (warningTimeoutRef.current) clearTimeout(warningTimeoutRef.current);
+      if (purgeTimeoutRef.current) clearTimeout(purgeTimeoutRef.current);
+      if (countdownRef.current) clearInterval(countdownRef.current);
+    };
+  }, [user, showSessionWarning, resetActivityTimer]);
 
   // Load user from localStorage on mount
   useEffect(() => {
@@ -215,6 +313,7 @@ function App() {
       setUser(userData);
       localStorage.setItem('myplanreader_user', JSON.stringify(userData));
       setShowAuthModal(false);
+      resetActivityTimer(); // Start session timer on login
       return { success: true };
     } catch (error) {
       return { success: false, error: error.response?.data?.detail || 'Sign in failed' };
@@ -228,6 +327,7 @@ function App() {
       setUser(userData);
       localStorage.setItem('myplanreader_user', JSON.stringify(userData));
       setShowAuthModal(false);
+      resetActivityTimer(); // Start session timer on signup
       return { success: true };
     } catch (error) {
       return { success: false, error: error.response?.data?.detail || 'Sign up failed' };
