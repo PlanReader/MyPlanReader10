@@ -339,6 +339,10 @@ function App() {
     setProjects([]);
     localStorage.removeItem('myplanreader_user');
     setActiveView('upload');
+    // Clear session timers
+    if (warningTimeoutRef.current) clearTimeout(warningTimeoutRef.current);
+    if (purgeTimeoutRef.current) clearTimeout(purgeTimeoutRef.current);
+    if (countdownRef.current) clearInterval(countdownRef.current);
   };
 
   const handleProjectProcessed = async (projectId) => {
@@ -371,6 +375,14 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gray-50" data-testid="app-container">
+      {/* Session Warning Modal */}
+      {showSessionWarning && (
+        <SessionWarningModal 
+          onKeepActive={handleKeepSessionActive}
+          timeRemaining={sessionTimeRemaining}
+        />
+      )}
+
       {/* Header with Auth */}
       <header className="fixed top-0 left-60 right-0 h-14 bg-white border-b border-gray-200 flex items-center justify-between px-6 z-40">
         <h2 className="text-lg font-semibold text-gray-800">
@@ -407,16 +419,18 @@ function App() {
       </header>
 
       {/* Sidebar */}
-      <aside className="fixed left-0 top-0 h-full w-60 bg-white border-r border-gray-200 p-4 overflow-y-auto shadow-sm" data-testid="sidebar">
+      <aside className="fixed left-0 top-0 h-full w-60 bg-white border-r border-gray-200 p-4 overflow-y-auto shadow-sm flex flex-col" data-testid="sidebar">
+        {/* Logo & Branding */}
         <div className="mb-8">
           <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2">
             <FileText className="w-6 h-6 text-blue-600" />
             MyPlanReader™
           </h1>
-          <p className="text-xs text-gray-500 mt-1">Blueprint Material Calculator</p>
+          <p className="text-xs text-gray-600 mt-1 font-medium">By USA Construction Inc.</p>
+          <p className="text-xs text-gray-500">Serving America since 1986</p>
         </div>
         
-        <nav className="space-y-1">
+        <nav className="space-y-1 flex-grow">
           <button
             onClick={() => setActiveView('upload')}
             className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
