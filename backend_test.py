@@ -465,8 +465,10 @@ def test_division_materials():
             data = response.json()
             required_fields = ["division", "name", "lumber_sizes", "connectors", "fasteners"]
             if all(field in data for field in required_fields):
-                lumber_count = len(data.get("lumber_sizes", {}).get("dimensional_lumber", {}))
-                log_test("Division 06 Materials", "PASS", f"Wood & Composites: {lumber_count} lumber sizes")
+                lumber_sizes = data.get("lumber_sizes", {})
+                dimensional_count = len(lumber_sizes.get("dimensional", []))
+                connectors_count = len(data.get("connectors", {}))
+                log_test("Division 06 Materials", "PASS", f"Wood & Composites: {dimensional_count} dimensional lumber, {connectors_count} connector categories")
                 results.append(True)
             else:
                 log_test("Division 06 Materials", "FAIL", f"Missing required fields: {data}")
