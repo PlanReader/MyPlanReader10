@@ -340,11 +340,12 @@ def test_simpson_product_h25a():
         response = requests.get(f"{API_BASE}/simpson-product/H2.5A", timeout=10)
         if response.status_code == 200:
             data = response.json()
-            required_fields = ["model", "description", "load_ratings"]
+            required_fields = ["model", "description", "uplift_load"]
             if all(field in data for field in required_fields):
                 model = data.get("model")
                 description = data.get("description")
-                log_test("Simpson Product H2.5A", "PASS", f"Model: {model}, Description: {description}")
+                load = data.get("uplift_load")
+                log_test("Simpson Product H2.5A", "PASS", f"Model: {model}, Load: {load}")
                 return True
             else:
                 log_test("Simpson Product H2.5A", "FAIL", f"Missing required fields: {data}")
@@ -362,11 +363,12 @@ def test_simpson_product_lus210():
         response = requests.get(f"{API_BASE}/simpson-product/LUS210", timeout=10)
         if response.status_code == 200:
             data = response.json()
-            required_fields = ["model", "description", "load_ratings"]
+            required_fields = ["model", "description", "load"]
             if all(field in data for field in required_fields):
                 model = data.get("model")
                 description = data.get("description")
-                log_test("Simpson Product LUS210", "PASS", f"Model: {model}, Description: {description}")
+                load = data.get("load")
+                log_test("Simpson Product LUS210", "PASS", f"Model: {model}, Load: {load}")
                 return True
             else:
                 log_test("Simpson Product LUS210", "FAIL", f"Missing required fields: {data}")
