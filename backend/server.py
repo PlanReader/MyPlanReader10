@@ -1211,6 +1211,386 @@ async def get_stripe_config():
         "publishable_key": STRIPE_PUBLISHABLE_KEY
     }
 
+# ============================================
+# AIA DIVISION ENDPOINTS
+# ============================================
+
+@app.get("/api/aia-divisions")
+async def get_aia_divisions():
+    """Get all AIA MasterFormat divisions supported"""
+    return {
+        "divisions": AIA_DIVISIONS,
+        "supported": ["03", "04", "06", "07", "08", "09"],
+        "description": "AIA MasterFormat 2020 division structure"
+    }
+
+@app.get("/api/aia-divisions/{division_code}")
+async def get_division_detail(division_code: str):
+    """Get detailed info for a specific AIA division"""
+    if division_code not in AIA_DIVISIONS:
+        raise HTTPException(status_code=404, detail=f"Division {division_code} not found")
+    return {
+        "code": division_code,
+        **AIA_DIVISIONS[division_code]
+    }
+
+@app.get("/api/lumber-sizes")
+async def get_lumber_sizes():
+    """Get all standard lumber sizes available at lumber yards"""
+    return LUMBER_SIZES
+
+@app.get("/api/fasteners")
+async def get_fasteners():
+    """Get all fastener types (nails, screws, bolts)"""
+    return FASTENERS
+
+@app.get("/api/concrete-anchors")
+async def get_concrete_anchors():
+    """Get all concrete anchor types (wedge, sleeve, tapcon, drop-in)"""
+    return {"anchors": CONCRETE_ANCHORS}
+
+# ============================================
+# SIMPSON STRONG-TIE CATALOG ENDPOINTS
+# ============================================
+
+@app.get("/api/simpson-catalog")
+async def get_simpson_catalog():
+    """Get complete Simpson Strong-Tie product catalog"""
+    return {
+        "connectors": SIMPSON_CONNECTORS,
+        "configurations": CONNECTOR_CONFIGURATIONS,
+        "total_products": len(get_all_simpson_products())
+    }
+
+@app.get("/api/simpson-catalog/{category}")
+async def get_simpson_category(category: str):
+    """Get Simpson products by category"""
+    if category not in SIMPSON_CONNECTORS:
+        raise HTTPException(status_code=404, detail=f"Category {category} not found")
+    return {
+        "category": category,
+        "products": SIMPSON_CONNECTORS[category]
+    }
+
+@app.get("/api/simpson-product/{model}")
+async def get_simpson_product(model: str):
+    """Look up a specific Simpson product by model number"""
+    product = get_simpson_by_model(model)
+    if not product:
+        raise HTTPException(status_code=404, detail=f"Product {model} not found")
+    return product
+
+@app.get("/api/mitek-catalog")
+async def get_mitek_catalog():
+    """Get MiTek product catalog"""
+    return MITEK_PRODUCTS
+
+@app.get("/api/mitek-product/{model}")
+async def get_mitek_product(model: str):
+    """Look up a specific MiTek product by model number"""
+    product = get_mitek_by_model(model)
+    if not product:
+        raise HTTPException(status_code=404, detail=f"MiTek product {model} not found")
+    return product
+
+# ============================================
+# DIVISION-SPECIFIC MATERIAL ENDPOINTS
+# ============================================
+
+@app.get("/api/materials/division-03")
+async def get_division_03_materials():
+    """Get Division 3 - Concrete materials (placeholder for future)"""
+    return {
+        "division": "03",
+        "name": "Concrete",
+        "materials": ["Concrete mix", "Rebar", "Wire mesh", "Form materials"],
+        "note": "Full catalog coming soon"
+    }
+
+@app.get("/api/materials/division-04")
+async def get_division_04_materials():
+    """Get Division 4 - Masonry materials"""
+    return {
+        "division": "04",
+        "name": "Masonry",
+        "materials": MASONRY_MATERIALS
+    }
+
+@app.get("/api/materials/division-06")
+async def get_division_06_materials():
+    """Get Division 6 - Wood, Plastics, Composites materials"""
+    return {
+        "division": "06",
+        "name": "Wood, Plastics, and Composites",
+        "lumber_sizes": LUMBER_SIZES,
+        "connectors": SIMPSON_CONNECTORS,
+        "fasteners": FASTENERS,
+        "anchors": CONCRETE_ANCHORS
+    }
+
+@app.get("/api/materials/division-07")
+async def get_division_07_materials():
+    """Get Division 7 - Thermal and Moisture Protection materials"""
+    return {
+        "division": "07",
+        "name": "Thermal and Moisture Protection",
+        "materials": THERMAL_MOISTURE_MATERIALS
+    }
+
+@app.get("/api/materials/division-08")
+async def get_division_08_materials():
+    """Get Division 8 - Openings materials"""
+    return {
+        "division": "08",
+        "name": "Openings",
+        "materials": OPENINGS_MATERIALS
+    }
+
+@app.get("/api/materials/division-09")
+async def get_division_09_materials():
+    """Get Division 9 - Finishes materials"""
+    return {
+        "division": "09",
+        "name": "Finishes",
+        "materials": FINISHES_MATERIALS
+    }
+
+# ============================================
+# PDF PARSING & TAKEOFF ENDPOINTS
+# ============================================
+
+class ManualTakeoffInput(BaseModel):
+    """Manual input for takeoff when PDF parsing unavailable"""
+    total_sqft: float
+    wall_linear_ft: float
+    num_stories: int = 1
+    foundation_type: str = "slab"  # slab, crawlspace, basement, pier_and_beam
+    num_doors: int = 6
+    num_windows: int = 12
+    selected_divisions: List[str] = ["06"]
+
+@app.post("/api/upload-blueprint")
+async def upload_blueprint(file: UploadFile = File(...)):
+    """
+    Upload a PDF blueprint for parsing and material takeoff.
+    Extracts dimensions, detects materials, and calculates quantities.
+    """
+    if not file.filename.lower().endswith('.pdf'):
+        raise HTTPException(status_code=400, detail="Only PDF files are supported")
+    
+    try:
+        # Read the PDF file
+        pdf_bytes = await file.read()
+        
+        # Parse the PDF
+        parsed_data = pdf_parser.parse_pdf_bytes(pdf_bytes, file.filename)
+        
+        # Generate material takeoff
+        takeoff = material_calculator.generate_full_takeoff(parsed_data)
+        
+        # Store in database
+        project_id = str(uuid.uuid4())
+        project_record = {
+            "id": project_id,
+            "filename": file.filename,
+            "page_count": parsed_data.page_count,
+            "total_sqft": parsed_data.total_sqft,
+            "wall_linear_ft": parsed_data.wall_linear_ft,
+            "num_stories": parsed_data.num_stories,
+            "foundation_type": parsed_data.foundation_type,
+            "num_doors": parsed_data.num_doors,
+            "num_windows": parsed_data.num_windows,
+            "materials": takeoff['materials'],
+            "raw_text_sample": parsed_data.raw_text[:1000],
+            "dimensions_found": parsed_data.dimensions_found,
+            "status": "parsed",
+            "created_at": datetime.utcnow().isoformat()
+        }
+        projects_collection.insert_one(project_record)
+        
+        return {
+            "success": True,
+            "project_id": project_id,
+            "parsed_data": {
+                "filename": parsed_data.filename,
+                "page_count": parsed_data.page_count,
+                "total_sqft": parsed_data.total_sqft,
+                "wall_linear_ft": parsed_data.wall_linear_ft,
+                "num_stories": parsed_data.num_stories,
+                "foundation_type": parsed_data.foundation_type,
+                "num_doors": parsed_data.num_doors,
+                "num_windows": parsed_data.num_windows,
+                "roof_sqft": parsed_data.roof_sqft,
+                "exterior_sqft": parsed_data.exterior_sqft
+            },
+            "takeoff": takeoff,
+            "note": "All quantities rounded UP to whole numbers for supplier ordering"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"PDF parsing error: {str(e)}")
+
+@app.post("/api/manual-takeoff")
+async def create_manual_takeoff(input_data: ManualTakeoffInput):
+    """
+    Create a material takeoff from manual input (without PDF upload).
+    Useful when PDF is not available or for quick estimates.
+    """
+    from pdf_parser import BlueprintData
+    from dataclasses import asdict
+    
+    # Create BlueprintData from manual input
+    data = BlueprintData(
+        filename="Manual Entry",
+        page_count=1,
+        total_sqft=input_data.total_sqft,
+        wall_linear_ft=input_data.wall_linear_ft,
+        ceiling_sqft=input_data.total_sqft,
+        floor_sqft=input_data.total_sqft,
+        exterior_sqft=input_data.wall_linear_ft * 8,  # 8' walls
+        roof_sqft=input_data.total_sqft * 1.15,  # 15% for pitch
+        num_doors=input_data.num_doors,
+        num_windows=input_data.num_windows,
+        num_stories=input_data.num_stories,
+        foundation_type=input_data.foundation_type,
+        raw_text="",
+        dimensions_found=[],
+        materials_detected=[]
+    )
+    
+    # Generate takeoff
+    takeoff = material_calculator.generate_full_takeoff(data)
+    
+    # Store in database
+    project_id = str(uuid.uuid4())
+    project_record = {
+        "id": project_id,
+        "filename": "Manual Entry",
+        "input_data": input_data.model_dump(),
+        "materials": takeoff['materials'],
+        "status": "complete",
+        "created_at": datetime.utcnow().isoformat()
+    }
+    projects_collection.insert_one(project_record)
+    
+    return {
+        "success": True,
+        "project_id": project_id,
+        "takeoff": takeoff
+    }
+
+@app.get("/api/takeoff/{project_id}")
+async def get_takeoff(project_id: str):
+    """Get material takeoff for a project"""
+    project = projects_collection.find_one({"id": project_id})
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    return {
+        "project_id": project_id,
+        "filename": project.get("filename"),
+        "total_sqft": project.get("total_sqft"),
+        "materials": project.get("materials", []),
+        "status": project.get("status"),
+        "created_at": project.get("created_at")
+    }
+
+@app.get("/api/export/takeoff/{project_id}")
+async def export_takeoff_csv(project_id: str):
+    """Export material takeoff as supplier-ready CSV"""
+    project = projects_collection.find_one({"id": project_id})
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    materials = project.get("materials", [])
+    
+    output = io.StringIO()
+    writer = csv.writer(output)
+    
+    # Header matching supplier format
+    writer.writerow([
+        "Order Line",
+        "Description",
+        "Lumber Size",
+        "Quantity",
+        "Length",
+        "Unit",
+        "Division",
+        "Supplier Notes"
+    ])
+    
+    for item in materials:
+        writer.writerow([
+            item.get("order_line", ""),
+            item.get("description", ""),
+            item.get("lumber_size", ""),
+            item.get("quantity", 0),
+            item.get("length", ""),
+            item.get("unit", ""),
+            item.get("division", ""),
+            item.get("supplier_notes", "")
+        ])
+    
+    output.seek(0)
+    
+    filename = project.get("filename", "takeoff").replace(".pdf", "")
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={filename}_takeoff_{datetime.utcnow().strftime('%Y%m%d')}.csv"}
+    )
+
+@app.get("/api/export/takeoff/{project_id}/xlsx")
+async def export_takeoff_xlsx_format(project_id: str):
+    """
+    Export material takeoff in XLSX-compatible CSV format
+    (Use with Excel import for full formatting)
+    """
+    project = projects_collection.find_one({"id": project_id})
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    materials = project.get("materials", [])
+    
+    output = io.StringIO()
+    writer = csv.writer(output)
+    
+    # Full header with all columns
+    writer.writerow([
+        "Order Line",
+        "Description",
+        "Notes",
+        "Lumber Size",
+        "Quantity",
+        "Length",
+        "Unit",
+        "AIA Division",
+        "Subcategory",
+        "Supplier Notes"
+    ])
+    
+    for item in materials:
+        writer.writerow([
+            item.get("order_line", ""),
+            item.get("description", ""),
+            "",  # Notes column for user
+            item.get("lumber_size", ""),
+            item.get("quantity", 0),
+            item.get("length", ""),
+            item.get("unit", ""),
+            item.get("division", ""),
+            item.get("subcategory", ""),
+            item.get("supplier_notes", "")
+        ])
+    
+    output.seek(0)
+    
+    filename = project.get("filename", "takeoff").replace(".pdf", "")
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={filename}_lumber_order_{datetime.utcnow().strftime('%Y%m%d')}.csv"}
+    )
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8001)
