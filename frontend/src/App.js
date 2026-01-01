@@ -491,6 +491,17 @@ function App() {
             <p className="text-xs text-red-600">to Tunnel to Towers</p>
           </div>
         )}
+
+        {/* Footer */}
+        <div className="mt-auto pt-6 border-t border-gray-200">
+          <div className="text-center">
+            <p className="text-xs text-gray-500 leading-relaxed">
+              © 2025 MyPlanReader™<br />
+              A USA Construction Inc. Product<br />
+              <span className="font-medium">Proudly Serving America for 40 Years</span>
+            </p>
+          </div>
+        </div>
       </aside>
 
       {/* Main Content */}
